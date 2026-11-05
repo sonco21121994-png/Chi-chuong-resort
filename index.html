@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a0614">
+<title>Đảo Nghỉ Dưỡng 3D – Du lịch đảo online</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">{ "imports": { "three": "./js/three.module.js" } }</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- START SCREEN -->
+<div id="start" class="overlay">
+  <div class="card">
+    <h1 class="neon">🏝️ ĐẢO NGỌC</h1>
+    <p class="sub">Du lịch đảo nghỉ dưỡng 3D online – tắm biển, ăn hải sản, cà phê, quẩy bar beer cùng mọi người</p>
+    <label>Tên hiển thị</label>
+    <div id="acctLine" class="tiny" style="margin:-4px 0 6px"></div>
+    <input id="nameInput" maxlength="20" placeholder="Nhập tên của bạn..." autocomplete="off">
+    <label>Nhân vật</label>
+    <div class="row" id="genderRow">
+      <button class="chip sel" data-g="m">🧑 Nam</button>
+      <button class="chip" data-g="f">👩 Nữ</button>
+    </div>
+    <label>Màu trang phục</label>
+    <div class="row" id="colorRow"></div>
+    <label>Chọn máy chủ <small style="opacity:.7">(ngày/đêm theo giờ thực Việt Nam GMT+7)</small></label>
+    <div class="rooms" id="roomRow">
+      <button class="room sel" data-r="day"><b>🏝️ Đảo Ngọc 1 – Đông vui</b><span>Máy chủ chính, nhiều người chơi nhất</span></button>
+      <button class="room" data-r="sunset"><b>🌴 Đảo Ngọc 2 – Chill</b><span>Thư giãn, cà phê, ngắm biển</span></button>
+      <button class="room" data-r="night"><b>🌙 Đảo Ngọc 3 – Cú đêm</b><span>Dân bar, nhảy nhót tới khuya</span></button>
+    </div>
+    <button id="enterBtn" class="primary">VÀO ĐẢO ➜</button>
+    <p class="tiny">Bản chơi thử · Xu là tiền ảo trong game, không nạp tiền thật, không đổi ra tiền.</p>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="topbar">
+    <div id="roomLabel" class="pill">🏝️ Đảo Ngọc 1</div>
+    <div id="online" class="pill">👥 0</div>
+    <div class="spacer"></div>
+    <div id="xu" class="pill gold">🪙 <span id="xuVal">0</span> Xu</div>
+    <button id="checkinBtn" class="pill btn">🎁 Điểm danh</button>
+    <button id="shopBtn" class="pill btn">🛍️ Cửa hàng</button>
+    <button id="timeBtn" class="pill btn" title="Đổi thời gian">☀️</button>
+    <button id="muteBtn" class="pill btn">🔊</button>
+    <button id="exitBtn" class="pill btn" title="Đổi máy chủ">🚪</button>
+  </div>
+  <canvas id="minimap" width="160" height="160"></canvas>
+  <div id="here" class="pill"></div>
+  <div id="chatLog"></div>
+  <div id="context"></div>
+  <div id="bottom">
+    <div id="emotes">
+      <button data-e="wave">👋<span>Vẫy tay</span></button>
+      <button data-e="cheers">🥂<span>Cụng ly</span></button>
+      <button data-e="clap">👏<span>Vỗ tay</span></button>
+      <button data-e="rock">🤘<span>Rock tay</span></button>
+    </div>
+    <form id="chatForm" autocomplete="off">
+      <input id="chatInput" maxlength="80" placeholder="Nhắn gì đó... (Enter)">
+      <button type="submit">Gửi</button>
+    </form>
+  </div>
+  <div id="joy"><div id="knob"></div></div>
+  <div id="hint">WASD / phím mũi tên để đi · Click mặt đất để đi tới · Kéo chuột để xoay camera</div>
+</div>
+
+<!-- PANELS -->
+<div id="panel" class="overlay hidden">
+  <div class="card wide">
+    <button class="close" id="panelClose">✕</button>
+    <div id="panelBody"></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

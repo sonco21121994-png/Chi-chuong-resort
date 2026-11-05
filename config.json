@@ -1,0 +1,159 @@
+{
+ "_ghi_chu": "streamUrl: link HLS .m3u8 / mp4 / Icecast (.mp3/.aac) – xem HUONG-DAN-LIVE.md. serverUrl: 'auto' = cùng địa chỉ với web (node server/server.js), '' = luôn offline, hoặc https://ten-mien-server. Giờ theo GMT+7.",
+ "streamUrl": "",
+ "showTime": {
+  "weekday": 6,
+  "hour": 21,
+  "minute": 0,
+  "durationMin": 180,
+  "tzOffset": 7
+ },
+ "djName": "DJ Sóng",
+ "mcName": "MC Bin",
+ "bpm": 128,
+ "alwaysOn": false,
+ "serverUrl": "auto",
+ "hours": {
+  "bar": [
+   [
+    18,
+    26
+   ]
+  ],
+  "cafe": [
+   [
+    7,
+    17
+   ]
+  ],
+  "restaurant": [
+   [
+    10.5,
+    14
+   ],
+   [
+    17,
+    22
+   ]
+  ],
+  "kiosk": [
+   [
+    7,
+    22
+   ]
+  ]
+ },
+ "events": [
+  {
+   "id": "djlive",
+   "name": "🎧 DJ Live Show",
+   "place": "Bar Beer",
+   "weekday": 6,
+   "hour": 21,
+   "minute": 0,
+   "durationMin": 180,
+   "reward": 30,
+   "desc": "DJ & MC live trên màn hình LED, nhảy cùng cả đảo"
+  },
+  {
+   "id": "beachparty",
+   "name": "🔥 Beach party & Acoustic night",
+   "place": "Bãi biển (lửa trại)",
+   "weekday": 0,
+   "hour": 19,
+   "minute": 30,
+   "durationMin": 150,
+   "reward": 25,
+   "desc": "Lửa trại, guitar acoustic, ngắm sao trên biển"
+  },
+  {
+   "id": "sunsetyoga",
+   "name": "🌅 Ngắm hoàng hôn cùng nhau",
+   "place": "Bến tàu",
+   "weekday": 5,
+   "hour": 17,
+   "minute": 30,
+   "durationMin": 60,
+   "reward": 10,
+   "desc": "Gặp gỡ, chụp ảnh hoàng hôn trên bến tàu"
+  }
+ ],
+ "seasons": [
+  {
+   "id": "tet",
+   "name": "Tết Nguyên Đán",
+   "from": "01-20",
+   "to": "02-20",
+   "color": "#ff1744",
+   "items": [
+    {
+     "id": "b_lixi",
+     "name": "Bao lì xì",
+     "icon": "🧧"
+    },
+    {
+     "id": "b_mai",
+     "name": "Hoa mai",
+     "icon": "🌼"
+    }
+   ]
+  },
+  {
+   "id": "valentine",
+   "name": "Valentine",
+   "from": "02-07",
+   "to": "02-15",
+   "color": "#ff4fa3",
+   "items": [
+    {
+     "id": "b_heart",
+     "name": "Trái tim bay",
+     "icon": "💘"
+    },
+    {
+     "id": "b_rose",
+     "name": "Hoa hồng",
+     "icon": "🌹"
+    }
+   ]
+  },
+  {
+   "id": "halloween",
+   "name": "Halloween",
+   "from": "10-20",
+   "to": "11-02",
+   "color": "#ff8f00",
+   "items": [
+    {
+     "id": "b_pumpkin",
+     "name": "Bí ngô",
+     "icon": "🎃"
+    },
+    {
+     "id": "b_ghost",
+     "name": "Bóng ma",
+     "icon": "👻"
+    }
+   ]
+  },
+  {
+   "id": "noel",
+   "name": "Giáng sinh",
+   "from": "12-15",
+   "to": "12-31",
+   "color": "#2e7d32",
+   "items": [
+    {
+     "id": "b_santa",
+     "name": "Mũ ông già Noel",
+     "icon": "🎅"
+    },
+    {
+     "id": "b_tree",
+     "name": "Cây thông",
+     "icon": "🎄"
+    }
+   ]
+  }
+ ]
+}
