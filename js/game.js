@@ -542,7 +542,7 @@ function loop() {
     mmT -= dt; if (mmT <= 0) { mmT = 0.2; drawMinimap(); }
     earnT += dt; if (earnT >= 60) { earnT = 0; const bonus = player.seat && player.seat.lie ? 2 : 0; setXu(5 + bonus); toast(`🪙 +${5 + bonus} Xu (thời gian online)`); }
     // audio mix
-    const r = Math.hypot(player.x, player.z); const dBar = Math.min(Math.hypot(player.x - W.venues.bar.x, player.z - W.venues.bar.z), G.clubDist ? G.clubDist() : 99); const dCafe = Math.min(Math.hypot(player.x - W.venues.cafe.x, player.z - W.venues.cafe.z), Math.hypot(player.x - W.venues.restaurant.x, player.z - W.venues.restaurant.z));
+    const r = Math.hypot(player.x, player.z); const dBeer = Math.hypot(player.x - W.venues.bar.x, player.z - W.venues.bar.z); const dBar = Math.min(dBeer, (G.clubTrack && G.clubTrack.on()) ? 99 : (G.clubDist ? G.clubDist() : 99)); const dCafe = Math.min(Math.hypot(player.x - W.venues.cafe.x, player.z - W.venues.cafe.z), Math.hypot(player.x - W.venues.restaurant.x, player.z - W.venues.restaurant.z));
     sound.setMix(0.12 + 0.75 * clamp((r - 26) / 20, 0, 1), Math.pow(1 - clamp(dBar / 30, 0, 1), 2) * 0.9 * (LIVE.streamOn ? 0 : 1), Math.max(Math.pow(1 - clamp(dCafe / 18, 0, 1), 2) * 0.55, G.extraCafe ? G.extraCafe() : 0));
     declutter(dt);
     // camera

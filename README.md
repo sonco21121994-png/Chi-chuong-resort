@@ -23,3 +23,12 @@ Không cấu hình mail thì liên kết được **ghi ra log máy chủ** (ch�
 | `PUBLIC_URL` | nên có | URL công khai không có dấu `/` cuối, ví dụ `https://chi-chuong-resort.onrender.com`. Nếu trống, dùng `RENDER_EXTERNAL_URL`. |
 
 `RESEND_API_KEY` được dùng trước `SMTP_URL`. API luôn trả cùng một câu cho email có hoặc không có tài khoản.
+
+## Nhạc Vũ Trường (tạm)
+
+Khi cửa mở và người chơi ở trong (hoặc đang vào gần cửa), trình phát SoundCloud Widget phát mixtape Vina House theo thứ tự Part 1 → Part 2, rồi lặp lại. Nút tắt tiếng của game đưa volume về 0. Bar Beer vẫn dùng nhạc synth có sẵn.
+
+- Part 1: https://soundcloud.com/viet-linh-doan/mixtape-vinahouse-la-bat-diet-special-30h-dj-linhlee-ft-54-dj-28-mc-part-1-15h10
+- Part 2: https://soundcloud.com/viet-linh-doan/mixtape-vinahouse-la-bat-diet-special-dj-linhlee-ft-54-dj-28-mc-part-2-15h09
+
+File MP3 trực tiếp của SoundCloud bị chặn CORS trên Safari, nên game nhúng `https://w.soundcloud.com/player/` (bắt đầu bằng Part 1) và điều khiển bằng `https://w.soundcloud.com/player/api.js`. Hết một phần thì widget `load` phần kế tiếp. Iframe được giấu (opacity 0), không `display:none`, để iOS vẫn phát sau lần chạm đầu (vào đảo hoặc joystick).

@@ -109,6 +109,7 @@ let wasOpen = null, fade = 1, tick = 0, lastNight = nightKey();
 G.clubDist = () => !C.open ? 99 : C.inside ? 0 : Math.max(0, Math.hypot(player.x - C.x, player.z - C.z) - 6) * 1.8;
 G.onFrame.push((dt) => {
   const px = player.x, pz = player.z; C.inside = C.contains(px, pz); C.near = Math.hypot(px - C.x, pz - C.z) < 26;
+  updateClubMusic();
   const camIn = C.contains(G.camera.position.x, G.camera.position.z) || C.inside; const tgt = camIn ? 0.12 : 1; fade += (tgt - fade) * Math.min(1, dt * 6);
   C.wallM.opacity = fade; C.wallM.depthWrite = fade > 0.9; C.roof.visible = !camIn; C.facade.visible = !camIn;
   if ((tick -= dt) > 0) return; tick = 0.5;
@@ -142,3 +143,56 @@ if (clubAlways || adminPreview) {
   if (clubAlways) G.onEnter.push(() => setTimeout(() => toast('🪩 Cửa Vũ Trường đang mở để xem thử. Bấm «Vào Vũ Trường».'), 900));
 }
 refresh();
+
+// Temporary vũ trường bed. Direct SoundCloud MP3 is CORS-blocked on mobile Safari,
+// so this uses the official widget iframe (w.soundcloud.com/player + api.js). Part 1 then Part 2, then loop.
+// Beer bar keeps the built-in synth.
+const SC_TRACKS = [
+  'https://soundcloud.com/viet-linh-doan/mixtape-vinahouse-la-bat-diet-special-30h-dj-linhlee-ft-54-dj-28-mc-part-1-15h10',
+  'https://soundcloud.com/viet-linh-doan/mixtape-vinahouse-la-bat-diet-special-dj-linhlee-ft-54-dj-28-mc-part-2-15h09',
+];
+const scBox = document.createElement('div'); scBox.id = 'clubScBox'; scBox.setAttribute('aria-hidden', 'true');
+const scFrame = document.createElement('iframe');
+scFrame.id = 'clubSc'; scFrame.title = 'Nhạc Vũ Trường'; scFrame.allow = 'autoplay; encrypted-media';
+scFrame.src = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(SC_TRACKS[0]) + '&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false&buying=false&sharing=false&download=false&show_artwork=false';
+scBox.appendChild(scFrame); document.body.appendChild(scBox);
+const scStyle = document.createElement('style'); scStyle.textContent = '#clubScBox{position:fixed;left:0;bottom:0;width:300px;height:166px;opacity:0;pointer-events:none;overflow:hidden;z-index:-1}#clubSc{width:300px;height:166px;border:0}';
+document.head.appendChild(scStyle);
+let scWidget = null, scReady = false, scPlaying = false, scVol = -1, scGesture = 0, scIndex = 0, scLoading = false;
+function loadScApi() { return new Promise((res) => { if (window.SC && window.SC.Widget) return res(); const s = document.createElement('script'); s.src = 'https://w.soundcloud.com/player/api.js'; s.onload = () => res(); s.onerror = () => res(); document.head.appendChild(s); }); }
+function scLoad(index, auto) {
+  if (!scWidget) return;
+  scIndex = (index + SC_TRACKS.length) % SC_TRACKS.length;
+  scLoading = true; scPlaying = false;
+  scWidget.load(SC_TRACKS[scIndex], { auto_play: !!auto, hide_related: true, show_comments: false, show_user: false, show_reposts: false, visual: false, callback() {
+    scLoading = false; scReady = true;
+    try { scWidget.setVolume(scVol < 0 ? 0 : scVol); } catch (e) {}
+    if (auto && clubMusicVol() > 0) { try { scWidget.play(); } catch (e) {} }
+  } });
+}
+loadScApi().then(() => { if (!(window.SC && window.SC.Widget)) return; scWidget = window.SC.Widget(scFrame);
+  scWidget.bind(window.SC.Widget.Events.READY, () => { scReady = true; try { scWidget.setVolume(0); } catch (e) {} });
+  scWidget.bind(window.SC.Widget.Events.PLAY, () => { scPlaying = true; });
+  scWidget.bind(window.SC.Widget.Events.PAUSE, () => { scPlaying = false; });
+  scWidget.bind(window.SC.Widget.Events.FINISH, () => { scPlaying = false; if (!scLoading) scLoad(scIndex + 1, clubMusicVol() > 0); });
+});
+function clubMusicVol() {
+  if (!G.isPlaying() || (G.muted && G.muted())) return 0;
+  if (G.LIVE && G.LIVE.streamOn) return 0;
+  if (!clubIsOpen()) return 0;
+  if (C.inside) return 80;
+  const d = Math.max(0, Math.hypot(player.x - C.x, player.z - C.z) - (C.hw || 8));
+  if (d > 18) return 0;
+  return Math.round(70 * (1 - d / 18));
+}
+function scPlay() { if (!scReady) return; try { scWidget.play(); } catch (e) {} }
+function updateClubMusic() {
+  if (!scReady) return;
+  const vol = clubMusicVol();
+  if (vol !== scVol) { scVol = vol; try { scWidget.setVolume(vol); } catch (e) {} }
+  if (vol > 0) { if (!scPlaying && performance.now() - scGesture < 2500) scPlay(); }
+  else if (scPlaying) { try { scWidget.pause(); } catch (e) {} }
+}
+G.clubTrack = { on: () => scReady, url: SC_TRACKS[0], urls: SC_TRACKS };
+addEventListener('pointerdown', () => { scGesture = performance.now(); if (scReady && clubMusicVol() > 0) scPlay(); });
+G.onEnter.push(() => { scGesture = performance.now(); scPlay(); });
