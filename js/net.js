@@ -91,6 +91,14 @@ net.logout = logout;
 let saveT = null; const PICK = ['xu', 'owned', 'equip', 'lastCheckin', 'liveRewards', 'evDone', 'lastShare', 'color', 'gender', 'prog', 'dating'];
 G.onSave = () => { if (!G.account) return; clearTimeout(saveT); saveT = setTimeout(pushSave, 2500); };
 net.flushSave = () => { clearTimeout(saveT); pushSave(); };
+net.cancelSave = () => clearTimeout(saveT);
+G.grantTestXu = async () => {
+  if (!G.account || !net.token) { setXu(5000); toast('🪙 +5000 Xu thử (chỉ trên máy này)'); return; }
+  net.cancelSave();
+  if (net.on) { net.send({ t: 'adminXu' }); toast('🪙 Đang cộng Xu thử…'); return; }
+  try { const r = await api('/api/admin-xu', {}); st.xu = r.xu; $('xuVal').textContent = st.xu; toast(`🪙 +${r.add} Xu thử · hiện có ${st.xu} Xu`); }
+  catch (e) { toast(e.message || 'Không cộng được Xu'); }
+};
 function pushSave() { const data = {}; PICK.forEach(k => data[k] = st[k]); if (net.on) net.send({ t: 'save', data }); else if (net.token) api('/api/save', { data }).catch(() => {}); }
 addEventListener('pagehide', () => { if (G.account && net.token) { const data = {}; PICK.forEach(k => data[k] = st[k]); fetch(net.base + '/api/save', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json', authorization: 'Bearer ' + net.token }, body: JSON.stringify({ data }) }).catch(() => {}); } });
 net.leaderboard = (cat, per) => api(`/api/leaderboard?cat=${cat}&per=${per}`);
@@ -141,6 +149,7 @@ function onMsg(m) {
     case 'gift': if (G.giftFx) G.giftFx(m.name, m.kind); break;
     case 'dm': onDM(m); break; case 'dmHist': net.dms.set(m.with, m.rows.map(x => ({ mine: x.src === net.me.id, text: x.text, ts: x.ts }))); if (dmOpen === m.with) openDM(m.with, dmName); break;
     case 'sys': toast(m.msg); break; case 'saved': if (Number.isFinite(m.xu) && m.xu !== st.xu) { st.xu = m.xu; $('xuVal').textContent = st.xu; } break;
+    case 'adminXu': if (m.error) { toast(m.error); break; } if (Number.isFinite(m.xu)) { st.xu = m.xu; $('xuVal').textContent = st.xu; toast(`🪙 +${m.add || 5000} Xu thử · hiện có ${st.xu} Xu`); } break;
     case 'blocked': net.blocks.add(m.to); break; case 'unblocked': net.blocks.delete(m.to); break;
     case 'friended': toast(m.mutual ? '🤝 Hai bạn đã là bạn bè!' : '🤝 Đã gửi lời mời kết bạn'); break;
     case 'friendReq': if (!hidden(m.from)) { toast(m.mutual ? `🤝 ${m.name} và bạn đã là bạn bè!` : `🤝 ${m.name} muốn kết bạn – chạm vào họ để kết bạn lại`); } break;

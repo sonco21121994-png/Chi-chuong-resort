@@ -58,8 +58,34 @@ function goldRain(who, mine) { G.floatEmoji && G.floatEmoji('👑', who.x, (who.
 function special(e) { G.doEmote('cheers'); const f = { champagne, sparkler, goldrain: goldRain }[e]; f(player, true); G.net && G.net.on && G.net.send({ t: 'emote', e }); G.prog && G.prog.addXP && G.prog.addXP(3, e); }
 const _rem = G.onRemoteEmote; G.onRemoteEmote = (r, e) => { _rem && _rem(r, e); const f = { champagne, sparkler, goldrain: goldRain }[e]; if (f) f(r, false); };
 
+// events.js awaits config.json, so it can finish AFTER this module. Read the playtest flag here.
+const clubAlways = /^(1|true|yes|on)$/i.test(new URLSearchParams(location.search).get('clubAlways') || '');
+const clubIsOpen = () => clubAlways || !!(G.venueOpen && G.venueOpen('club'));
+
+// Walk through the west door (center line). Touch uses this instead of threading the gap with the stick.
+function enterClub(opts = {}) {
+  const open = clubIsOpen();
+  if (!open) { toast('🪩 Vũ Trường đang đóng cửa. Mở 21:00–02:00 (giờ Việt Nam).'); return false; }
+  if (!C.open) C.setOpen(true);
+  const e = W.venues.club.entry, inn = W.venues.club.inner;
+  if (player.seat) G.standUp(); if (player.dance) G.stopDance();
+  if (C.contains(player.x, player.z)) { toast('Bạn đang ở trong Vũ Trường'); return true; }
+  const nearMat = Math.hypot(player.x - e.x, player.z - e.z) < 2.4;
+  player.yaw = Math.PI / 2;
+  if (G.cam) G.cam.yaw = -Math.PI / 2;
+  if (nearMat) player.target = { x: inn.x, z: inn.z };
+  else if (opts.warp) { player.x = e.x; player.z = e.z; player.y = W.walkY(e.x, e.z); player.target = { x: inn.x, z: inn.z }; }
+  else { player.target = { x: e.x, z: e.z }; player.afterArrive = () => { player.target = { x: inn.x, z: inn.z }; player.yaw = Math.PI / 2; }; }
+  toast('🪩 Đang vào Vũ Trường…');
+  return true;
+}
+G.enterClub = enterClub;
+
 // ---- context buttons ----
 (G.ctxExtra = G.ctxExtra || []).push((btns, px, pz) => {
+  const entry = W.venues.club.entry;
+  const nearEntry = Math.hypot(px - entry.x, pz - entry.z) < 7 || Math.hypot(px - (vx - C.hw), pz - vz) < 5.5;
+  if (!C.inside && nearEntry) btns.unshift(clubIsOpen() ? ['🪩 Vào Vũ Trường', () => enterClub()] : ['🕘 Vũ Trường đóng cửa', () => toast('🪩 Vũ Trường đang đóng cửa. Mở 21:00–02:00 (giờ Việt Nam).')]);
   if (!C.inside && !C.near) return;
   const host = npcs.find(n => n.staff === 'host'); if (host && Math.hypot(host.x - px, host.z - pz) < 3) btns.unshift(['🛎️ Lễ tân VIP – Chị Hằng', openHost]);
   const bo = npcs.find(n => n.staff === 'bouncer'); if (bo && !G.venueOpen('club') && Math.hypot(bo.x - px, bo.z - pz) < 4) btns.unshift(['🕘 Hỏi giờ mở cửa', () => { G.bubble(bo, 'Tối nay 21h mở cửa nha, tới 2h sáng. Nhớ mang theo tinh thần quẩy! 😎', 4); }]);
@@ -85,7 +111,7 @@ G.onFrame.push((dt) => {
   const camIn = C.contains(G.camera.position.x, G.camera.position.z) || C.inside; const tgt = camIn ? 0.12 : 1; fade += (tgt - fade) * Math.min(1, dt * 6);
   C.wallM.opacity = fade; C.wallM.depthWrite = fade > 0.9; C.roof.visible = !camIn; C.facade.visible = !camIn;
   if ((tick -= dt) > 0) return; tick = 0.5;
-  const open = G.venueOpen ? G.venueOpen('club') : false;
+  const open = clubIsOpen();
   if (open !== wasOpen) { C.setOpen(open);
     if (wasOpen && !open) { // closing time: everybody out
       npcs.forEach(n => { if (!n.staff && n.spot && n.spot.venue === 'club') G.goAct(n, G.venueOpen('bar') ? 'barStand' : 'shore'); });
@@ -95,7 +121,23 @@ G.onFrame.push((dt) => {
     if (open && wasOpen === false) G.logChat('Vũ Trường', '🪩 Vũ Trường đã mở cửa! DJ Mây đang warm-up 🎶');
     wasOpen = open; }
   if (nightKey() !== lastNight) { lastNight = nightKey(); refresh(); }
+  if (!open && C.doorBox) {
+    const b = C.doorBox, px2 = player.x, pz2 = player.z, pad = 0.7;
+    const against = px2 >= b.minX - pad && px2 <= b.maxX + pad && pz2 >= b.minZ - pad && pz2 <= b.maxZ + pad;
+    if (against && (!C._shutAt || G.now() - C._shutAt > 8)) { C._shutAt = G.now(); toast('🪩 Vũ Trường đang đóng cửa. Mở 21:00–02:00 (giờ Việt Nam).'); }
+  }
   // stand up from a club seat whose booking expired
   if (player.seat && player.seat.clubZone && !G.seatGate(player.seat)) G.standUp();
 });
+// Open the door now for the playtest URL. events.js may still be awaiting config.json.
+const adminPreview = new URLSearchParams(location.search).has('admin');
+if (clubAlways) C.setOpen(true);
+if (clubAlways || adminPreview) {
+  const go = document.createElement('button'); go.id = 'clubGo'; go.type = 'button'; go.className = 'pill btn'; go.textContent = '🪩 Vào Vũ Trường';
+  go.hidden = !clubIsOpen();
+  go.onclick = (e) => { e.stopPropagation(); enterClub({ warp: true }); };
+  $('hud').appendChild(go);
+  G.onFrame.push(() => { const show = clubIsOpen() && G.isPlaying(); if (go.hidden === show) go.hidden = !show; });
+  if (clubAlways) G.onEnter.push(() => setTimeout(() => toast('🪩 Cửa Vũ Trường đang mở để xem thử. Bấm «Vào Vũ Trường».'), 900));
+}
 refresh();

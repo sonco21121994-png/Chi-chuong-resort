@@ -73,11 +73,33 @@ setInterval(() => { const now = Date.now(); for (const [k, a] of RL) if (!a.some
 
 // ---------------- economy sanity (client-authoritative with caps) ----------------
 const SERVER_GRANT = new Map(); // userId -> xu granted by server since last save
+const GRANT_HOLD = new Map(); // userId -> { before, after, until } so a save already in flight cannot wipe a playtest grant
+const PLAYTEST_XU = 5000;
+function grantPlaytestXu(u) {
+  if (limited('adminxu:' + u.id, 12, 3600e3)) return { error: 'Đã cấp Xu thử nhiều lần trong giờ này. Thử lại sau.' };
+  const fresh = Q.userById.get(u.id) || u;
+  const d = J(fresh.data, DEFAULT_DATA());
+  const before = Math.floor(+d.xu || 0);
+  d.xu = before + PLAYTEST_XU;
+  saveUser(fresh, d);
+  for (const cl of clients.values()) if (cl.user.id === u.id) { cl.user.data = fresh.data; cl.user.last_seen = fresh.last_seen; }
+  if (u !== fresh) { u.data = fresh.data; u.last_seen = fresh.last_seen; }
+  SERVER_GRANT.set(u.id, (SERVER_GRANT.get(u.id) || 0) + PLAYTEST_XU);
+  GRANT_HOLD.set(u.id, { before, after: d.xu, until: Date.now() + 20000 });
+  log('playtest xu', fresh.nick, before, '->', d.xu);
+  return { xu: d.xu, add: PLAYTEST_XU };
+}
 function sanitizeData(u, incoming) {
   const old = J(u.data, DEFAULT_DATA()); const d = { ...old };
   const mins = Math.max(0, (Date.now() - (u.last_seen || u.created)) / 60000);
   const allow = 300 + Math.min(mins, 24 * 60) * 40 + (SERVER_GRANT.get(u.id) || 0); SERVER_GRANT.delete(u.id);
-  if (Number.isFinite(incoming.xu)) d.xu = Math.max(0, Math.min(Math.floor(incoming.xu), (old.xu || 0) + allow));
+  if (Number.isFinite(incoming.xu)) {
+    let next = Math.max(0, Math.min(Math.floor(incoming.xu), (old.xu || 0) + allow));
+    const hold = GRANT_HOLD.get(u.id);
+    if (hold && Date.now() > hold.until) GRANT_HOLD.delete(u.id);
+    else if (hold && Math.floor(incoming.xu) <= hold.before + 300) next = hold.after + Math.max(0, Math.min(300, Math.floor(incoming.xu) - hold.before));
+    d.xu = next;
+  }
   if (incoming.owned !== undefined) { const ow = {}; if (incoming.owned && typeof incoming.owned === 'object') for (const [k, v] of Object.entries(incoming.owned).slice(0, 2000)) if (/^[a-z0-9_]{1,40}$/i.test(k) && v) ow[k] = true; d.owned = ow; }
   for (const k of ['equip', 'lastCheckin', 'liveRewards', 'evDone', 'lastShare', 'color', 'gender', 'server']) if (incoming[k] !== undefined) d[k] = incoming[k];
   if (incoming.prog && typeof incoming.prog === 'object') { const p = incoming.prog, op = old.prog || { xp: 0 }; const xpAllow = 600 + Math.min(mins, 24 * 60) * 150;
@@ -147,6 +169,7 @@ async function api(req, res, p) {
   if (req.method === 'POST' && p === '/api/logout') { Q.delSess.run(sha(bearer(req))); for (const c of clients.values()) if (c.user.id === u.id) c.ws.close(4001, 'logout'); return send(res, 200, { ok: true }); }
   if (p === '/api/me') { const rw = weeklyReward(u); return send(res, 200, { user: pubUser(u), data: J(u.data, DEFAULT_DATA()), blocks: Q.blocks.all(u.id).map(r => r.dst), matches: matchList(u.id), friends: Q.friends.all(u.id).map(r => r.b), weeklyReward: rw, week: weekId() }); }
   if (req.method === 'POST' && p === '/api/save') { const b = await body(req); const d = sanitizeData(u, b.data || {}); saveUser(u, d); return send(res, 200, { ok: true, xu: d.xu }); }
+  if (req.method === 'POST' && p === '/api/admin-xu') { const r = grantPlaytestXu(u); return send(res, r.error ? 429 : 200, r); }
   if (p === '/api/leaderboard') { const sp = new URL(req.url, 'http://x').searchParams; return send(res, 200, { rows: leaderboard(sp.get('cat'), sp.get('per'), u.id), week: weekId() }); }
   return send(res, 404, { error: 'not found' });
 }
@@ -235,6 +258,7 @@ function handle(c, m) {
     case 'emote': case 'react': { if (limited('fx:' + u.id, 12, 5000)) return; const e = String(m.e || m.k || m.kind || '').slice(0, 16); if (!ANIM_RE.test(e)) return; bcastI(c, { t: m.t, id: c.id, e, name: u.nick }, c, (o) => !o.blocks.has(u.id)); break; }
     case 'gift': { const g = String(m.g || m.kind || '').slice(0, 8); bcastI(c, { t: 'gift', id: c.id, name: u.nick, kind: g }, c); break; } // virtual-only DJ gifts (Xu deducted client side)
     case 'save': { const d = sanitizeData(u, m.data || {}); saveUser(u, d); sendTo(c, { t: 'saved', xu: d.xu }); break; }
+    case 'adminXu': { const r = grantPlaytestXu(u); sendTo(c, { t: 'adminXu', ...r }); break; }
     case 'profiles': { const me = J(Q.userById.get(u.id).data).dating || {}; const seen = new Set(Q.liked.all(u.id).map(r => r.dst)); const hl = Date.now();
       const list = Q.deck.all(u.id, hl).filter(r => !seen.has(r.id) && !blockedPair(u.id, r.id)).map(r => { const d = J(r.data).dating || {}; return { uid: r.id, nick: r.nick, gender: d.gender, looking: d.looking, bio: d.bio, interests: d.interests, age: d.age, hl: (d.hlUntil || 0) > hl, online: !!byUser(r.id), level: levelOf(J(r.data).prog?.xp || 0) }; })
         .filter(p => (me.looking === 'all' || !me.looking || p.gender === me.looking) && (p.looking === 'all' || !p.looking || p.looking === me.gender)).slice(0, 30);

@@ -3,6 +3,9 @@ import * as THREE from 'three';
 const G = window.__game; const { W, scene, renderer, camera, st, toast, setXu, save, npcs, LIVE } = G;
 const $ = (id) => document.getElementById(id);
 const Q = new URLSearchParams(location.search);
+const flagOn = (name) => /^(1|true|yes|on)$/i.test(Q.get(name) || '');
+// Playtest: ?clubAlways=1 opens the nightclub immediately (real hours stay 21:00–02:00 otherwise).
+const clubAlways = flagOn('clubAlways');
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
 const DAYS = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 const TZ = 7; // Asia/Bangkok, UTC+7 (no DST)
@@ -28,12 +31,12 @@ let manual = null;      // player time button: 'day' | 'sunset' | 'night' | null
 const hourNow = () => timeOverride ?? (() => { const d = bkk(); return d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600; })();
 
 // ---------- opening hours ----------
-function venueOpen(k) { if ((k === 'bar' || k === 'club') && LIVE.isLive) return true; const h = hourNow(); const r = HOURS[k]; if (!r) return true; return r.some(([a, b]) => (h >= a && h < b) || (b > 24 && h < b - 24)); }
+function venueOpen(k) { if (k === 'club' && clubAlways) return true; if ((k === 'bar' || k === 'club') && LIVE.isLive) return true; const h = hourNow(); const r = HOURS[k]; if (!r) return true; return r.some(([a, b]) => (h >= a && h < b) || (b > 24 && h < b - 24)); }
 const fmtH = (h) => `${pad(Math.floor(h % 24))}:${pad(Math.round((h % 1) * 60))}`;
 function hoursText(v) { const k = typeof v === 'string' ? v : Object.keys(W.venues).find(x => W.venues[x] === v); return 'Giờ mở cửa ' + (HOURS[k] || []).map(([a, b]) => `${fmtH(a)}–${fmtH(b)}`).join(', '); }
 const BAR_ACTS = new Set(['dance', 'barStool', 'barStand', 'barLean', 'crowd']);
 const BEACH = new Set(['lounger', 'swim', 'wade', 'volley', 'castle', 'shore']);
-G.venueOpen = venueOpen; G.hoursText = hoursText;
+G.venueOpen = venueOpen; G.hoursText = hoursText; G.clubAlways = clubAlways;
 G.actMul = (k, n) => { const a = G.ACTS[k] || {}; const venue = BAR_ACTS.has(k) ? 'bar' : a.venue; if (venue && !venueOpen(venue)) return 0.03;
   const h = hourNow(); let m = 1; if (BEACH.has(k)) m *= (h > 7 && h < 17) ? 1.8 : (h >= 17 && h < 19) ? 1 : 0.25; if (k === 'photo' || k === 'view') m *= (h > 16.5 && h < 19) || (h > 5.5 && h < 7.5) ? 2 : 1;
   if (k === 'bonfire') m = activeEvent('beachparty') ? 6 : 0; if (activeEvent('beachparty') && BEACH.has(k)) m *= 0.4; return m; };
@@ -115,13 +118,18 @@ function eventTick() {
 }
 
 // ---------- admin: time slider + event simulation ----------
-if (Q.has('admin')) { const b = el('button', { className: 'pill btn', title: 'Giờ / sự kiện (admin)' }, '⏱️'); $('topbar').insertBefore(b, $('muteBtn')); b.onclick = () => {
+function setAdminHour(h) { timeOverride = h; manual = null; lastKey = ''; applyClock(); updClockPill(); }
+if (Q.has('admin')) { const b = el('button', { className: 'pill btn', title: 'Giờ / sự kiện (admin)' }, '⏱️'); $('topbar').insertBefore(b, $('muteBtn'));
+  const xuB = el('button', { className: 'pill btn gold', id: 'adminXuBtn', title: 'Cộng 5000 Xu thử, có hiệu lực cả khi đang đăng nhập' }, '+5000 Xu thử'); $('topbar').prepend(xuB);
+  xuB.onclick = (e) => { e.stopPropagation(); G.grantTestXu ? G.grantTestXu() : (setXu(5000), toast('🪙 +5000 Xu thử')); };
+  b.onclick = () => {
   G.openPanel(`<h2>⏱️ Debug thời gian & sự kiện</h2><label>Giờ trong game: <b id="tsV"></b></label><input id="ts" type="range" min="0" max="24" step="0.25" style="width:100%" value="${hourNow().toFixed(2)}">
-   <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0"><button class="pill btn" data-a="real">🕒 Về giờ thực</button>${EVENTS.map(e => `<button class="pill btn" data-ev="${e.id}">▶ ${e.name}</button>`).join('')}<button class="pill btn" data-ev="">⏹ Tắt giả lập sự kiện</button></div>
-   <p class="muted">Mùa hiện tại: ${season ? season.name : 'không'} · thử mùa khác bằng ?season=tet|valentine|halloween|noel</p>`);
+   <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0"><button class="pill btn gold" data-a="xu">+5000 Xu thử</button><button class="pill btn" data-h="21.5">🪩 21:30 Mở Vũ Trường</button><button class="pill btn" data-h="16.75">☀️ 16:45 Đóng cửa</button><button class="pill btn" data-a="real">🕒 Về giờ thực</button>${EVENTS.map(e => `<button class="pill btn" data-ev="${e.id}">▶ ${e.name}</button>`).join('')}<button class="pill btn" data-ev="">⏹ Tắt giả lập sự kiện</button></div>
+   <p class="muted">Kéo thanh giờ tới 21:00 trở đi (hoặc bấm 21:30) để mở cửa Vũ Trường. Trên điện thoại, kéo ngang ngay trên thanh. Mùa hiện tại: ${season ? season.name : 'không'} · thử mùa khác bằng ?season=tet|valentine|halloween|noel</p>`);
   const v = () => { $('tsV').textContent = timeOverride == null ? 'giờ thực ' + fmtH(hourNow()) : fmtH(timeOverride); }; v();
-  $('ts').oninput = (e) => { timeOverride = +e.target.value; manual = null; lastKey = ''; applyClock(); v(); updClockPill(); };
-  $('panelBody').onclick = (e) => { if (e.target.dataset.a === 'real') { timeOverride = null; lastKey = ''; applyClock(); v(); updClockPill(); } if (e.target.dataset.ev !== undefined) { const id = e.target.dataset.ev; if (id === 'djlive') { G.live && G.live.force(true); } else { simEvent = id || null; if (!id && G.live) G.live.force(false); } toast(id ? 'Giả lập sự kiện: ' + id : 'Đã tắt giả lập'); } }; }; }
+  const applySlider = (e) => { setAdminHour(+e.target.value); v(); };
+  $('ts').oninput = applySlider; $('ts').onchange = applySlider;
+  $('panelBody').onclick = (e) => { const t = e.target.closest('[data-h],[data-a],[data-ev]'); if (!t) return; if (t.dataset.a === 'xu') { G.grantTestXu ? G.grantTestXu() : (setXu(5000), toast('🪙 +5000 Xu thử')); return; } if (t.dataset.h) { setAdminHour(+t.dataset.h); const sl = $('ts'); if (sl) sl.value = t.dataset.h; v(); toast(+t.dataset.h >= 21 && +t.dataset.h < 26 ? '🪩 Vũ Trường đang mở cửa' : '🕘 Đã đặt giờ – Vũ Trường đóng nếu ngoài 21:00–02:00'); return; } if (t.dataset.a === 'real') { timeOverride = null; lastKey = ''; applyClock(); v(); updClockPill(); } if (t.dataset.ev !== undefined) { const id = t.dataset.ev; if (id === 'djlive') { G.live && G.live.force(true); } else { simEvent = id || null; if (!id && G.live) G.live.force(false); } toast(id ? 'Giả lập sự kiện: ' + id : 'Đã tắt giả lập'); } }; }; }
 G.adminTime = (h) => { timeOverride = h; lastKey = ''; applyClock(); updClockPill(); };
 G.simEvent = (id) => { simEvent = id; };
 
