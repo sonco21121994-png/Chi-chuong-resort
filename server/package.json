@@ -5,7 +5,14 @@
   "type": "module",
   "description": "Realtime server + accounts for Đảo Ngọc (ws + node:sqlite)",
   "main": "server.js",
-  "engines": { "node": ">=22.5" },
-  "scripts": { "start": "node server.js" },
-  "dependencies": { "ws": "^8.18.0" }
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "nodemailer": "^10.3.1",
+    "ws": "^8.18.0"
+  }
 }

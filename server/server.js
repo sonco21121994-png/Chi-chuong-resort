@@ -30,10 +30,20 @@ CREATE TABLE IF NOT EXISTS friends(a INTEGER NOT NULL, b INTEGER NOT NULL, ts IN
 CREATE TABLE IF NOT EXISTS blocks(src INTEGER NOT NULL, dst INTEGER NOT NULL, ts INTEGER NOT NULL, PRIMARY KEY(src, dst));
 CREATE TABLE IF NOT EXISTS reports(id INTEGER PRIMARY KEY, src INTEGER, dst INTEGER, reason TEXT, context TEXT, ts INTEGER);
 CREATE TABLE IF NOT EXISTS dms(id INTEGER PRIMARY KEY, src INTEGER NOT NULL, dst INTEGER NOT NULL, text TEXT NOT NULL, ts INTEGER NOT NULL);
-CREATE INDEX IF NOT EXISTS dms_pair ON dms(src, dst, ts);`);
+CREATE INDEX IF NOT EXISTS dms_pair ON dms(src, dst, ts);
+CREATE TABLE IF NOT EXISTS password_resets(token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX IF NOT EXISTS resets_user ON password_resets(user_id);`);
 const q = (sql) => db.prepare(sql);
 const Q = {
   userByKey: q('SELECT * FROM users WHERE nick_key=?'), userById: q('SELECT * FROM users WHERE id=?'),
+  userByEmail: q('SELECT * FROM users WHERE email IS NOT NULL AND lower(email)=? ORDER BY last_seen DESC'),
+  setPass: q('UPDATE users SET pass=? WHERE id=?'),
+  insReset: q('INSERT INTO password_resets(token_hash,user_id,expires,used) VALUES(?,?,?,0)'),
+  delUserResets: q('DELETE FROM password_resets WHERE user_id=?'),
+  resetByHash: q('SELECT * FROM password_resets WHERE token_hash=?'),
+  markReset: q('UPDATE password_resets SET used=1 WHERE token_hash=? AND used=0'),
+  delUserSess: q('DELETE FROM sessions WHERE user_id=?'),
+  gcReset: q('DELETE FROM password_resets WHERE used=1 OR expires<?'),
   insUser: q('INSERT INTO users(nick,nick_key,pass,email,adult,rules,created,last_seen,data) VALUES(?,?,?,?,?,?,?,?,?)'),
   setData: q('UPDATE users SET data=?, xp=?, dance=?, events=?, dates=?, last_seen=? WHERE id=?'),
   insSess: q('INSERT INTO sessions(token,user_id,created,expires,ua) VALUES(?,?,?,?,?)'), sess: q('SELECT * FROM sessions WHERE token=? AND expires>?'),
@@ -69,7 +79,7 @@ const pubUser = (u) => ({ id: u.id, nick: u.nick, email: u.email ? u.email.repla
 const RL = new Map();
 function limited(key, max, winMs) { const now = Date.now(); const a = (RL.get(key) || []).filter(t => now - t < winMs); if (a.length >= max) { RL.set(key, a); return true; } a.push(now); RL.set(key, a); return false; }
 const fails = new Map(); // login failures: key -> {n, until}
-setInterval(() => { const now = Date.now(); for (const [k, a] of RL) if (!a.some(t => now - t < 3600e3)) RL.delete(k); for (const [k, f] of fails) if (f.until < now && now - f.last > 3600e3) fails.delete(k); Q.gcSess.run(now); }, 600e3).unref();
+setInterval(() => { const now = Date.now(); for (const [k, a] of RL) if (!a.some(t => now - t < 3600e3)) RL.delete(k); for (const [k, f] of fails) if (f.until < now && now - f.last > 3600e3) fails.delete(k); Q.gcSess.run(now); Q.gcReset.run(now); }, 600e3).unref();
 
 // ---------------- economy sanity (client-authoritative with caps) ----------------
 const SERVER_GRANT = new Map(); // userId -> xu granted by server since last save
@@ -130,6 +140,50 @@ const TITLE_TXT = { tanbinh: '🌱 Tân binh Đảo Ngọc', vuasan: '🕺 Vua s
 
 function auth(token) { if (!token) return null; const s = Q.sess.get(sha(token), Date.now()); if (!s) return null; const u = Q.userById.get(s.user_id); return u && !u.banned ? u : null; }
 const ipOf = (req) => (req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim();
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[a-z]{2,}$/i;
+const RESET_MS = 45 * 60 * 1000;
+const FORGOT_MSG = 'Nếu email này đã được dùng để đăng ký, chúng tôi đã gửi liên kết đặt lại mật khẩu. Hãy kiểm tra hộp thư và thư rác. Liên kết có hiệu lực 45 phút và chỉ dùng một lần.';
+function pwError(pw, nick) {
+  if (typeof pw !== 'string' || pw.length < 8 || pw.length > 128) return 'Mật khẩu cần 8–128 ký tự';
+  if (!/[a-zA-Z\p{L}]/u.test(pw) || !/\d/.test(pw)) return 'Mật khẩu cần có cả chữ và số';
+  if (nick && pw.toLowerCase().includes(String(nickKey(nick)).replace(/ /g, ''))) return 'Mật khẩu không được chứa biệt danh';
+  return null;
+}
+function publicOrigin(req) {
+  const env = (process.env.PUBLIC_URL || process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
+  if (env) return env;
+  const host = req.headers['x-forwarded-host'] || req.headers.host || `localhost:${PORT}`;
+  const proto = (req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim();
+  return `${proto}://${host}`;
+}
+async function sendResetMail(to, link) {
+  const from = process.env.MAIL_FROM || 'Đảo Ngọc <onboarding@resend.dev>';
+  const subject = 'Đặt lại mật khẩu Đảo Ngọc';
+  const text = `Bạn đã yêu cầu đặt lại mật khẩu Đảo Ngọc.\n\nMở liên kết này trong vòng 45 phút (chỉ dùng một lần):\n${link}\n\nNếu bạn không yêu cầu, hãy bỏ qua email này.`;
+  const html = `<p>Bạn đã yêu cầu đặt lại mật khẩu <b>Đảo Ngọc</b>.</p><p><a href="${link}">Đặt lại mật khẩu</a></p><p>Liên kết có hiệu lực 45 phút và chỉ dùng một lần. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`;
+  if (process.env.RESEND_API_KEY) {
+    const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify({ from, to: [to], subject, text, html }) });
+    if (!r.ok) { const t = await r.text(); log('resend fail', r.status, t.slice(0, 240)); throw new Error('resend'); }
+    return 'resend';
+  }
+  if (process.env.SMTP_URL) {
+    const nm = await import('nodemailer');
+    const create = nm.createTransport || nm.default.createTransport;
+    const tx = create(process.env.SMTP_URL);
+    await tx.sendMail({ from, to, subject, text, html });
+    return 'smtp';
+  }
+  log('MAIL NOT CONFIGURED — reset link for', to, link);
+  return 'log';
+}
+async function issueReset(user, req) {
+  const token = crypto.randomBytes(32).toString('base64url');
+  Q.delUserResets.run(user.id);
+  Q.insReset.run(sha(token), user.id, Date.now() + RESET_MS);
+  const link = `${publicOrigin(req)}/?reset=${encodeURIComponent(token)}`;
+  const via = await sendResetMail(user.email, link);
+  log('reset issued', user.id, via);
+}
 
 // ---------------- HTTP: API + static ----------------
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.md': 'text/markdown; charset=utf-8', '.webp': 'image/webp' };
@@ -143,10 +197,8 @@ async function api(req, res, p) {
   if (req.method === 'POST' && p === '/api/register') {
     if (limited('reg:' + ip, 5, 3600e3)) return send(res, 429, { error: 'Bạn tạo tài khoản quá nhiều lần, thử lại sau 1 giờ' });
     const b = await body(req); const nick = normNick(b.nick); const bad = checkNick(nick); if (bad) return send(res, 400, { error: bad, field: 'nick' });
-    if (typeof b.password !== 'string' || b.password.length < 8 || b.password.length > 128) return send(res, 400, { error: 'Mật khẩu cần 8–128 ký tự', field: 'password' });
-    if (!/[a-zA-Z\p{L}]/u.test(b.password) || !/\d/.test(b.password)) return send(res, 400, { error: 'Mật khẩu cần có cả chữ và số', field: 'password' });
-    if (b.password.toLowerCase().includes(nickKey(nick).replace(/ /g, ''))) return send(res, 400, { error: 'Mật khẩu không được chứa biệt danh', field: 'password' });
-    const email = (b.email || '').trim(); if (email && !/^[^\s@]{1,64}@[^\s@]{1,190}\.[a-z]{2,}$/i.test(email)) return send(res, 400, { error: 'Email không hợp lệ', field: 'email' });
+    const pwBad = pwError(b.password, nick); if (pwBad) return send(res, 400, { error: pwBad, field: 'password' });
+    const email = (b.email || '').trim().toLowerCase(); if (email && !EMAIL_RE.test(email)) return send(res, 400, { error: 'Email không hợp lệ', field: 'email' });
     if (b.adult !== true) return send(res, 400, { error: 'Bạn phải xác nhận đủ 18 tuổi', field: 'adult' });
     if (b.rules !== true) return send(res, 400, { error: 'Bạn cần đồng ý Nội quy đảo', field: 'rules' });
     if (Q.userByKey.get(nickKey(nick))) return send(res, 409, { error: 'Biệt danh đã có người dùng', field: 'nick' });
@@ -164,7 +216,37 @@ async function api(req, res, p) {
     if (u.banned) return send(res, 403, { error: 'Tài khoản đã bị khóa do vi phạm nội quy' });
     fails.delete(fk); log('login', u.id, u.nick, ip); return send(res, 200, session(u, !!b.remember, req));
   }
-  if (req.method === 'POST' && p === '/api/forgot') return send(res, 200, { ok: true, message: 'Tính năng khôi phục mật khẩu qua email đang được phát triển. Bản thử nghiệm chưa gửi email.' });
+  if (req.method === 'POST' && p === '/api/forgot') {
+    if (limited('forgot:' + ip, 5, 3600e3)) return send(res, 429, { error: 'Bạn yêu cầu quá nhiều lần. Thử lại sau ít phút.' });
+    const b = await body(req);
+    const email = String(b.email || '').trim().toLowerCase();
+    const nick = String(b.nick || '').trim();
+    if (!EMAIL_RE.test(email)) return send(res, 400, { error: 'Email không hợp lệ', field: 'email' });
+    if (limited('forgot-mail:' + sha(email), 3, 3600e3)) return send(res, 429, { error: 'Bạn yêu cầu quá nhiều lần. Thử lại sau ít phút.' });
+    try {
+      let user = null;
+      if (nick) { const byNick = Q.userByKey.get(nickKey(nick)); if (byNick && byNick.email && byNick.email.toLowerCase() === email && !byNick.banned) user = byNick; }
+      else { const rows = Q.userByEmail.all(email).filter(u => !u.banned); if (rows.length === 1) user = rows[0]; }
+      if (user && user.email) await issueReset(user, req);
+      else log('reset skipped', nick ? 'nick/email mismatch or missing' : 'no single account');
+    } catch (e) { log('reset mail error', e.message); }
+    return send(res, 200, { ok: true, message: FORGOT_MSG });
+  }
+  if (req.method === 'POST' && p === '/api/reset') {
+    if (limited('reset:' + ip, 10, 3600e3)) return send(res, 429, { error: 'Bạn thử quá nhiều lần. Thử lại sau ít phút.' });
+    const b = await body(req);
+    const token = String(b.token || '');
+    const row = token.length >= 20 && token.length < 200 ? Q.resetByHash.get(sha(token)) : null;
+    const user = row ? Q.userById.get(row.user_id) : null;
+    if (!row || row.used || row.expires < Date.now() || !user || user.banned) return send(res, 400, { error: 'Liên kết không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.' });
+    const pwBad = pwError(b.password, user.nick); if (pwBad) return send(res, 400, { error: pwBad, field: 'password' });
+    if (!Q.markReset.run(sha(token)).changes) return send(res, 400, { error: 'Liên kết không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.' });
+    Q.setPass.run(await hashPw(b.password), user.id);
+    Q.delUserSess.run(user.id);
+    for (const c of clients.values()) if (c.user.id === user.id) { try { c.ws.close(4001, 'reset'); } catch {} }
+    log('password reset', user.id);
+    return send(res, 200, { ok: true, message: 'Đã đặt lại mật khẩu. Hãy đăng nhập bằng mật khẩu mới.' });
+  }
   const u = auth(bearer(req)); if (!u) return send(res, 401, { error: 'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại' });
   if (req.method === 'POST' && p === '/api/logout') { Q.delSess.run(sha(bearer(req))); for (const c of clients.values()) if (c.user.id === u.id) c.ws.close(4001, 'logout'); return send(res, 200, { ok: true }); }
   if (p === '/api/me') { const rw = weeklyReward(u); return send(res, 200, { user: pubUser(u), data: J(u.data, DEFAULT_DATA()), blocks: Q.blocks.all(u.id).map(r => r.dst), matches: matchList(u.id), friends: Q.friends.all(u.id).map(r => r.b), weeklyReward: rw, week: weekId() }); }

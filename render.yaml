@@ -12,3 +12,11 @@ services:
         value: "22.16.0"
       - key: NODE_ENV
         value: production
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SMTP_URL
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: PUBLIC_URL
+        sync: false

@@ -41,13 +41,64 @@ const auth = el('div', { id: 'auth', className: 'overlay' }, `<div class="card">
   <button class="pill btn" id="auGuest" style="margin-top:8px">🎒 Chơi offline (Khách) – không lưu lên máy chủ</button>
   <p class="tiny">Mật khẩu được mã hoá (scrypt) trên máy chủ. Không dùng lại mật khẩu ngân hàng/email.</p></div>`);
 document.body.append(auth); $('start').classList.add('hidden');
+function eyeToggle(input) {
+  if (!input || input.dataset.eye) return; input.dataset.eye = '1';
+  const wrap = document.createElement('span'); wrap.className = 'pwWrap';
+  input.parentNode.insertBefore(wrap, input); wrap.appendChild(input);
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pwEye'; b.textContent = '👁️';
+  b.setAttribute('aria-label', 'Hiện mật khẩu'); b.setAttribute('aria-pressed', 'false');
+  b.onclick = () => { const show = input.type === 'password'; input.type = show ? 'text' : 'password'; b.textContent = show ? '🙈' : '👁️'; b.setAttribute('aria-label', show ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'); b.setAttribute('aria-pressed', show ? 'true' : 'false'); };
+  wrap.appendChild(b);
+}
+eyeToggle($('auPw')); eyeToggle($('auPw2'));
 let mode = 'login', failN = 0, lockUntil = 0;
 $('auTabs').onclick = (e) => { const t = e.target.dataset.t; if (!t) return; mode = t; [...$('auTabs').children].forEach(b => b.classList.toggle('sel', b.dataset.t === t));
   document.querySelectorAll('.regOnly').forEach(x => x.classList.toggle('hidden', t !== 'reg')); $('auGo').textContent = t === 'reg' ? 'TẠO TÀI KHOẢN' : 'ĐĂNG NHẬP'; $('auPw').autocomplete = t === 'reg' ? 'new-password' : 'current-password'; clearErr(); };
 const clearErr = () => ['eNick', 'ePw', 'eEmail', 'eAll'].forEach(i => $(i).textContent = '');
 $('auNick').oninput = () => { if (mode === 'reg') $('eNick').textContent = $('auNick').value.trim().length >= 3 ? (checkNick($('auNick').value) || '') : ''; };
 $('auRulesLink').onclick = (e) => { e.preventDefault(); alertBox('📜 Nội quy Đảo Ngọc', RULES); };
-$('auForgot').onclick = async (e) => { e.preventDefault(); let msg = 'Tính năng khôi phục mật khẩu đang được phát triển.'; try { msg = (await api('/api/forgot', { nick: $('auNick').value })).message; } catch (x) {} alertBox('🔑 Quên mật khẩu', `<p>${esc(msg)}</p><p class="muted">Tạm thời: liên hệ ban quản trị đảo để được hỗ trợ đặt lại mật khẩu.</p>`); };
+const apiBase = () => net.base || location.origin;
+async function postApi(p, body) { const base = apiBase(); const r = await fetch(base + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); const j = await r.json().catch(() => ({ error: 'Lỗi máy chủ' })); if (!r.ok) { const e = new Error(j.error || 'Lỗi'); e.field = j.field; throw e; } return j; }
+function openForgot() {
+  const o = el('div', { className: 'overlay', style: 'z-index:90' }, `<div class="card"><h2>🔑 Quên mật khẩu</h2>
+    <p>Nhập email đã dùng khi đăng ký. Nếu nhớ biệt danh, điền thêm để gửi đúng tài khoản.</p>
+    <label>Email</label><input id="fgEmail" type="email" maxlength="120" autocomplete="email" required placeholder="ban@email.com">
+    <label>Biệt danh <small>(không bắt buộc)</small></label><input id="fgNick" maxlength="20" autocomplete="username">
+    <div class="fieldErr" id="fgErr"></div>
+    <button class="primary" id="fgGo" type="button">GỬI LIÊN KẾT</button>
+    <button class="pill btn" id="fgClose" type="button" style="margin-top:8px">Đóng</button></div>`);
+  document.body.append(o);
+  $('fgNick').value = ($('auNick') && $('auNick').value.trim()) || '';
+  $('fgClose').onclick = () => o.remove();
+  $('fgGo').onclick = async () => {
+    $('fgErr').textContent = ''; $('fgGo').disabled = true;
+    try { const r = await postApi('/api/forgot', { email: $('fgEmail').value.trim(), nick: $('fgNick').value.trim() }); o.remove(); alertBox('📧 Kiểm tra email', `<p>${esc(r.message)}</p>`); }
+    catch (err) { $('fgErr').textContent = err.message; }
+    finally { const b = $('fgGo'); if (b) b.disabled = false; }
+  };
+}
+function openReset(token) {
+  const o = el('div', { className: 'overlay', style: 'z-index:90' }, `<div class="card"><h2>🔒 Đặt mật khẩu mới</h2>
+    <p>Liên kết chỉ dùng một lần và hết hạn sau 45 phút.</p>
+    <label>Mật khẩu mới</label><input id="rsPw" type="password" maxlength="128" autocomplete="new-password">
+    <label>Nhập lại mật khẩu</label><input id="rsPw2" type="password" maxlength="128" autocomplete="new-password">
+    <div class="fieldErr" id="rsErr"></div>
+    <button class="primary" id="rsGo" type="button">LƯU MẬT KHẨU</button></div>`);
+  document.body.append(o);
+  eyeToggle($('rsPw')); eyeToggle($('rsPw2'));
+  $('rsGo').onclick = async () => {
+    $('rsErr').textContent = '';
+    const pw = $('rsPw').value;
+    if (pw.length < 8 || !/\d/.test(pw) || !/\p{L}/u.test(pw)) return $('rsErr').textContent = 'Mật khẩu cần ≥ 8 ký tự, có cả chữ và số';
+    if (pw !== $('rsPw2').value) return $('rsErr').textContent = 'Hai mật khẩu không khớp';
+    $('rsGo').disabled = true;
+    try { const r = await postApi('/api/reset', { token, password: pw }); o.remove(); history.replaceState(null, '', location.pathname); alertBox('✅ Đã đổi mật khẩu', `<p>${esc(r.message)}</p>`); }
+    catch (err) { $('rsErr').textContent = err.message; $('rsGo').disabled = false; }
+  };
+}
+$('auForgot').onclick = (e) => { e.preventDefault(); openForgot(); };
+const resetTok = new URLSearchParams(location.search).get('reset');
+if (resetTok) openReset(resetTok);
 function alertBox(title, html) { const o = el('div', { className: 'overlay', style: 'z-index:90' }, `<div class="card"><h2>${title}</h2>${html}<button class="primary">OK</button></div>`); o.querySelector('button').onclick = () => o.remove(); document.body.append(o); }
 $('auForm').onsubmit = async (e) => { e.preventDefault(); clearErr();
   if (Date.now() < lockUntil) return $('eAll').textContent = `Vui lòng chờ ${Math.ceil((lockUntil - Date.now()) / 1000)} giây rồi thử lại`;
