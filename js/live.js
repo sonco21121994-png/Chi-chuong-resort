@@ -8,7 +8,7 @@ const el = (tag, attrs = {}, html = '') => { const e = document.createElement(ta
 const DAYS = ['Chủ nhật', 'thứ 2', 'thứ 3', 'thứ 4', 'thứ 5', 'thứ 6', 'thứ 7'];
 
 // ---------- config ----------
-const CFG = { streamUrl: '', showTime: { weekday: 6, hour: 21, minute: 0, durationMin: 180, tzOffset: 7 }, djName: 'DJ Sóng', mcName: 'MC Bin', bpm: 128, alwaysOn: false };
+const CFG = { streamUrl: '', showTime: { weekday: 6, hour: 21, minute: 0, durationMin: 180, tzOffset: 7 }, djName: 'DJ Funny', mcName: 'MC T-monkey', bpm: 128, alwaysOn: false };
 let forcedLive = false, simulateAt = 0;
 async function loadConfig() {
   try { const r = await fetch('config.json', { cache: 'no-store' }); if (r.ok) { const c = await r.json(); Object.assign(CFG, c, { showTime: { ...CFG.showTime, ...(c.showTime || {}) } }); } } catch (e) { /* static host without config */ }

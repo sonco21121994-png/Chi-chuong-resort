@@ -36,7 +36,7 @@ export const PROFILES = {
   elder: { cafe: 3, eat: 2.5, view: 1.5, rock: 1.5, shore: 2, lounger: 1.5 },
 };
 export const LINES = {
-  club: ['Nhạc trong Vũ Trường đỉnh thật! 🪩', 'Laser đẹp quá trời!', 'Drop sắp tới rồi, chuẩn bị nhảy!', 'Sàn LED đổi màu theo nhạc luôn kìa', 'Tối nay quẩy tới 2h sáng 🔥', 'Bàn VIP có pháo sáng kìa 🎇', 'DJ Mây chơi nhạc cuốn ghê'],
+  club: ['Nhạc trong Vũ Trường đỉnh thật! 🪩', 'Laser đẹp quá trời!', 'Drop sắp tới rồi, chuẩn bị nhảy!', 'Sàn LED đổi màu theo nhạc luôn kìa', 'Tối nay quẩy tới 2h sáng 🔥', 'Bàn VIP có pháo sáng kìa 🎇', 'DJ Funny chơi nhạc cuốn ghê'],
   bouncer: ['Chào mừng tới Vũ Trường! 🪩', 'Vui lòng giữ trật tự nhé', 'Mở cửa từ 21h đến 2h sáng', 'Khu VIP và Master cần đặt trước ở Cửa hàng'],
   host: ['Quý khách đặt bàn VIP chưa ạ? 🍾', 'Mời quý khách lên Khu Master 👑', 'Em dẫn anh chị vào bàn nhé', 'Bàn VIP có champagne và pháo sáng đó ạ'],
   clubbar: ['Cocktail Galaxy hôm nay mới ra nè 🍸', 'Uống có chừng mực nha anh chị', 'Một shot Sóng Đêm không? 🥃'],
@@ -72,13 +72,13 @@ export const STAFF = [
   { role: 'barista', name: 'Vy', title: 'Barista', text: 'Đang pha cà phê ☕', look: { gender: 'f', shirt: '#2e7d6b', pants: '#3e2723', apron: '#5d4037', hair: '#3a2416', hairStyle: 'bun' } },
   { role: 'vendor', name: 'Cô Sáu', title: 'Bán nước dừa', text: 'Đang bán nước dừa 🥥', look: { gender: 'f', shirt: '#ff8a65', pants: '#4e342e', hat: 'straw', hair: '#2a1a12', age: 'elder', hairStyle: 'bun' } },
   { role: 'bartender', name: 'Tuấn', title: 'Bartender', text: 'Đang pha chế 🍸', look: { gender: 'm', shirt: '#111111', pants: '#111', apron: '#ff2fbf', hair: '#5a3a22', glasses: false } },
-  { role: 'mc', name: 'MC Bin', title: 'MC', text: 'Đang khuấy động sân khấu 🎤', look: { gender: 'm', shirt: '#ff2fbf', pants: '#111', hair: '#111', hawaii: true, glasses: true } },
+  { role: 'mc', name: 'MC T-monkey', title: 'MC', text: 'Đang khuấy động sân khấu 🎤', look: { gender: 'm', shirt: '#ff2fbf', pants: '#111', hair: '#111', hawaii: true, glasses: true } },
   { role: 'bouncer', name: 'Anh Hổ', title: 'Bảo vệ', text: 'Đang canh cửa Vũ Trường 🕶️', look: { gender: 'm', shirt: '#111111', pants: '#111', hair: '#111', glasses: true, hairStyle: 'bald' } },
   { role: 'host', name: 'Chị Hằng', title: 'Lễ tân VIP', text: 'Đang đón khách VIP 🍾', look: { gender: 'f', shirt: '#d4af37', pants: '#111', hair: '#1b1210', hairStyle: 'long' } },
   { role: 'clubbar', name: 'Khang', title: 'Bartender Vũ Trường', text: 'Đang lắc cocktail 🍸', look: { gender: 'm', shirt: '#1a1030', pants: '#111', apron: '#b04dff', hair: '#2a1a12' } },
-  { role: 'clubdj', name: 'DJ Mây', title: 'DJ Vũ Trường', text: 'Đang chơi nhạc ở Vũ Trường 🎧', look: { gender: 'f', shirt: '#b04dff', pants: '#111', glasses: true, hair: '#ff80ab', hairStyle: 'long' } },
-  { role: 'clubmc', name: 'MC Rin', title: 'MC Vũ Trường', text: 'Đang khuấy động Vũ Trường 🎤', look: { gender: 'm', shirt: '#21e6ff', pants: '#111', hair: '#111', glasses: true } },
-  { role: 'dj', name: 'DJ Sóng', title: 'DJ', text: 'Đang chơi nhạc 🎧', look: { gender: 'm', shirt: '#7b1fa2', pants: '#111', hat: 'cap', capColor: '#111', glasses: true, hair: '#ffeb3b' } },
+  { role: 'clubdj', name: 'DJ Funny', title: 'DJ Vũ Trường', text: 'Đang chơi nhạc ở Vũ Trường 🎧', look: { gender: 'f', shirt: '#b04dff', pants: '#111', glasses: true, hair: '#ff80ab', hairStyle: 'long' } },
+  { role: 'clubmc', name: 'MC T-monkey', title: 'MC Vũ Trường', text: 'Đang khuấy động Vũ Trường 🎤', look: { gender: 'm', shirt: '#21e6ff', pants: '#111', hair: '#111', glasses: true } },
+  { role: 'dj', name: 'DJ Funny', title: 'DJ', text: 'Đang chơi nhạc 🎧', look: { gender: 'm', shirt: '#7b1fa2', pants: '#111', hat: 'cap', capColor: '#111', glasses: true, hair: '#ffeb3b' } },
 ];
 export const SHOP = {
   outfit: [

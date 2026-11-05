@@ -120,7 +120,7 @@ G.onFrame.push((dt) => {
       if (C.inside) { if (player.seat) G.standUp(); if (player.dance) G.stopDance(); const e = W.venues.club.entry; player.x = e.x - 1; player.z = e.z; player.y = 0; player.target = null; toast('🌙 Vũ Trường đã đóng cửa (02h). Hẹn gặp lại tối mai!'); }
     }
     if (open) pullCrowd();
-    if (open && wasOpen === false) G.logChat('Vũ Trường', '🪩 Vũ Trường đã mở cửa! DJ Mây đang warm-up 🎶');
+    if (open && wasOpen === false) G.logChat('Vũ Trường', '🪩 Vũ Trường đã mở cửa! DJ Funny đang warm-up 🎶');
     wasOpen = open; }
   if (nightKey() !== lastNight) { lastNight = nightKey(); refresh(); }
   if (!open && C.doorBox) {
