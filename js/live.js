@@ -37,8 +37,8 @@ const cv = el('canvas'); cv.width = 512; cv.height = 288; const cx = cv.getConte
 const canvasTex = new THREE.CanvasTexture(cv); canvasTex.colorSpace = THREE.SRGBColorSpace;
 const ledMat = new THREE.MeshBasicMaterial({ map: canvasTex, toneMapped: false });
 const led = new THREE.Mesh(new THREE.PlaneGeometry(S.w, S.h), ledMat); led.position.set(S.x, S.y, S.z + 0.08); scene.add(led);
-const frame = new THREE.Mesh(new THREE.BoxGeometry(S.w + 0.3, S.h + 0.3, 0.15), new THREE.MeshStandardMaterial({ color: '#111', emissive: '#ff2fbf', emissiveIntensity: 0.35 })); frame.position.set(S.x, S.y, S.z); scene.add(frame);
-const stageLight = new THREE.PointLight('#ff4fd8', 0, 18); stageLight.position.set(S.x, S.y, S.z + 3); scene.add(stageLight);
+const frame = new THREE.Mesh(new THREE.BoxGeometry(S.w + 0.3, S.h + 0.3, 0.15), new THREE.MeshStandardMaterial({ color: '#5d4037', emissive: '#ffcc80', emissiveIntensity: 0.25 })); frame.position.set(S.x, S.y, S.z); scene.add(frame);
+const stageLight = new THREE.PointLight('#ffcc80', 0, 14); stageLight.position.set(S.x, S.y, S.z + 2.4); scene.add(stageLight);
 // main stage: club LED wall shares the same material (same stream / canvas)
 const M = W.club.led; const led2 = new THREE.Mesh(new THREE.PlaneGeometry(M.w, M.h), ledMat); led2.position.set(M.x - 0.06, M.y, M.z); led2.rotation.y = M.rotY; scene.add(led2);
 const stageLight2 = new THREE.PointLight('#b04dff', 0, 16); stageLight2.position.set(M.x - 3, M.y, M.z); scene.add(stageLight2);

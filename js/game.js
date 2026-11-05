@@ -33,9 +33,9 @@ const W = buildWorld(scene, { mobile: isTouch || !Q.shadows, Q });
 W.setTime(st.server, renderer);
 const sound = new Sound();
 // extra bar spots: leaning on the counter, and a crowd ring around the stage (film / selfie / hype)
-{ const b = W.venues.bar, DY = W.stage.floorY, sx = W.stage.x, sz = W.stage.z + 1.6;
-  for (const lx of [-4.6, -1.8, 0.95]) W.spots.push({ id: 'lean' + lx, kind: 'lean', venue: 'bar', x: b.x + lx, z: b.z - 3.05, y: DY, rot: Math.PI, anim: 'lean', prop: 'beer', occupant: null });
-  const ring = [[7.0, -1.6], [7.0, 0.2], [7.0, 2.0], [7.2, 3.6], [0.4, -1.4], [0.4, 0.4], [0.5, 2.2], [1.8, 3.7], [3.2, 3.9], [4.6, 3.9], [6.0, 3.8], [2.4, 5.0], [4.4, 5.1], [6.2, 5.0]];
+{ const b = W.venues.bar, DY = W.stage.floorY, sx = W.stage.x, sz = W.stage.z + 1.2;
+  for (const lx of [-3.6, -2.2, -0.6]) W.spots.push({ id: 'lean' + lx, kind: 'lean', venue: 'bar', x: b.x + lx, z: b.z - 2.45, y: DY, rot: Math.PI, anim: 'lean', prop: 'beer', occupant: null });
+  const ring = [[2.2, -1.6], [3.2, -0.6], [4.8, -1.2], [5.6, -0.2], [2.4, 0.2], [3.8, 0.8], [5.2, 0.6], [1.6, 1.2], [4.4, 1.6], [6.0, 1.4]];
   for (const [lx, lz] of ring) { const x = b.x + lx, z = b.z + lz; W.spots.push({ id: 'crowd' + lx + lz, kind: 'crowd', venue: 'bar', x, z, y: DY, rot: Math.atan2(sx - x, sz - z), anim: 'film', occupant: null }); } }
 const G = { onFrame: [], onChat: null, onEmote: [], onEnter: [] };
 const LIVE = { isLive: false, energy: 1 }; // filled in by live show module

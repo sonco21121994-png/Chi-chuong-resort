@@ -44,10 +44,10 @@ export function buildWorld(scene, { mobile }) {
 
   // venue flatten areas (must be defined before terrain build)
   const V = {
-    restaurant: { x: -20, z: 6, w: 7, d: 6 }, cafe: { x: 20, z: 8, w: 6, d: 6 }, bar: { x: 2, z: -14, w: 8, d: 6 }, club: { x: 24, z: -10, w: 8.5, d: 7.5 }, kiosk: { x: 2, z: 26, w: 4, d: 3 }, boutique: { x: -12, z: 23, w: 10, d: 8 },
+    restaurant: { x: -20, z: 6, w: 7, d: 6 }, cafe: { x: 20, z: 8, w: 6, d: 6 }, bar: { x: 12, z: 43, w: 9, d: 6.5 }, club: { x: 24, z: -10, w: 12, d: 10.5 }, kiosk: { x: 2, z: 26, w: 4, d: 3 }, boutique: { x: -12, z: 23, w: 10, d: 8 },
   };
   W.boutiqueV = V.boutique;
-  for (const k in V) FLAT.push({ ...V[k], y: 1.4 });
+  for (const k in V) FLAT.push({ ...V[k], y: k === 'bar' ? 0.58 : 1.4 });
 
   // ----- terrain mesh -----
   const SIZE = 240, SEG = mobile ? 140 : 180;
@@ -182,64 +182,72 @@ export function buildWorld(scene, { mobile }) {
       menu: [{ id: 'cfsuada', name: 'Cà phê sữa đá', icon: '🧋', price: 8, prop: 'cup', color: '#8d5524' }, { id: 'bacxiu', name: 'Bạc xỉu', icon: '🥛', price: 10, prop: 'cup', color: '#e6cfa7' }, { id: 'cfmuoi', name: 'Cà phê muối', icon: '☕', price: 12, prop: 'cup', color: '#5d4037' }, { id: 'tradao', name: 'Trà đào', icon: '🍑', price: 10, prop: 'glass', color: '#ffab76' }] };
     label('☕ Cafe', v.x, DY + 5.6, v.z);
   }
-  // ---- Bar Beer ----
+  // ---- Bar Beer: open-air beach beer garden (sand, sea, umbrellas, string lights — not an indoor bar) ----
   { const v = V.bar; const g = new THREE.Group(); g.position.set(v.x, 0, v.z); scene.add(g);
-    deck(v.x, v.z, 16, 12, DY, '#3a2a3a');
-    box(7, 1.1, 1, '#2b1b2b', -2.5, DY + 0.55, -4, g); addBox(v.x - 2.5, v.z - 4, 7, 1);
-    const strip = new THREE.Mesh(new THREE.BoxGeometry(7, 0.06, 0.04), neonMat('#ff2fbf')); strip.position.set(-2.5, DY + 0.8, -3.48); g.add(strip);
-    box(7.5, 2.4, 0.3, '#1c1020', -2.5, DY + 1.2, -5.6, g); addBox(v.x - 2.5, v.z - 5.6, 7.5, 0.3);
-    const bottleCols = ['#3fd17a', '#ffb300', '#2fb7ff', '#ff4f6d', '#c080ff'];
-    for (let i = 0; i < 14; i++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.35, 6), new THREE.MeshStandardMaterial({ color: bottleCols[i % 5], emissive: bottleCols[i % 5], emissiveIntensity: 0.5 })); b.position.set(-5.6 + i * 0.45, DY + 1.6, -5.35); g.add(b); }
-    for (let i = 0; i < 3; i++) { const t = cyl(0.12, 0.12, 0.6, '#c0c0c0', -4.5 + i * 0.6, DY + 1.4, -4.1, g, 10, { metalness: 0.8, roughness: 0.2 }); }
-    // stools
-    for (let i = 0; i < 5; i++) { const sx = -5.3 + i * 1.4; cyl(0.24, 0.24, 0.08, '#ff2fbf', sx, DY + 0.78, -2.9, g, 12); cyl(0.04, 0.05, 0.78, '#999', sx, DY + 0.39, -2.9, g);
-      addSpot({ kind: 'stool', venue: 'bar', x: v.x + sx, z: v.z - 2.9, y: DY, seatH: 0.82, rot: Math.PI, anim: 'drink', seat: true, prop: 'beer' }); }
-    // DJ booth
-    box(2.6, 1.1, 1.1, '#111', 4.2, DY + 0.55, -4.3, g); addBox(v.x + 4.2, v.z - 4.3, 2.6, 1.1);
-    const djStrip = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.12, 0.02), neonMat('#21e6ff')); djStrip.position.set(4.2, DY + 0.7, -3.74); g.add(djStrip);
-    for (const s of [-0.6, 0.6]) { const tt = cyl(0.3, 0.3, 0.05, '#333', 4.2 + s, DY + 1.13, -4.3, g, 16); W.updaters.push((t) => tt.rotation.y = t * 4); }
-    for (const s of [-1.8, 1.8]) { box(0.8, 1.8, 0.8, '#151515', 4.2 + s, DY + 0.9, -4.6, g); const cone = cyl(0.25, 0.15, 0.05, '#444', 4.2 + s, DY + 1.3, -4.18, g); cone.rotation.x = Math.PI / 2; W.updaters.push((t, beat) => cone.scale.setScalar(1 + beat * 0.15)); addBox(v.x + 4.2 + s, v.z - 4.6, 0.8, 0.8); }
-    W.stage = { x: v.x + 4.2, z: v.z - 5.95, y: DY + 3.35, w: 5.4, h: 3.04, floorY: DY, bx: v.x, bz: v.z };
-    addSpot({ kind: 'staff', role: 'dj', x: v.x + 4.2, z: v.z - 5.05, y: DY, rot: 0, anim: 'dj' });
-    addSpot({ kind: 'staff', role: 'bartender', x: v.x - 2.5, z: v.z - 4.85, y: DY, rot: 0, anim: 'bartend' });
-    W.routes.bartender = [{ x: v.x - 4.8, z: v.z - 4.85 }, { x: v.x - 2.5, z: v.z - 4.85 }, { x: v.x - 0.4, z: v.z - 4.85 }];
-    // dance floor
-    const N = 5, tile = 1.0, fx = 3.6, fz = 0.3; const tiles = new THREE.InstancedMesh(new THREE.BoxGeometry(tile * 0.95, 0.05, tile * 0.95), new THREE.MeshBasicMaterial({ toneMapped: false }), N * N);
-    const m4 = new THREE.Matrix4(); let k = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) { m4.makeTranslation(v.x + fx + (i - 2) * tile, DY + 0.03, v.z + fz + (j - 2) * tile); tiles.setMatrixAt(k, m4); tiles.setColorAt(k++, new THREE.Color('#ff00aa')); }
+    const GY = 0.74;
+    deck(v.x, v.z, 18, 13, GY, '#e6c98a');
+    // wood boardwalk under the bar and the open dance deck
+    deck(v.x - 1.2, v.z - 4.2, 8.2, 2.4, GY + 0.06, '#c4a574');
+    deck(v.x + 3.6, v.z + 0.4, 5.2, 5.2, GY + 0.05, '#b08968');
+    // open counter facing the sea (+z). No walls.
+    box(7.2, 1.05, 0.8, '#a67c52', -1.2, GY + 0.52, -4.3, g); addBox(v.x - 1.2, v.z - 4.3, 7.2, 0.8);
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.05, 0.04), neonMat('#ffcc80')); strip.position.set(-1.2, GY + 1.02, -3.88); g.add(strip);
+    const bottleCols = ['#3fd17a', '#ffb300', '#2fb7ff', '#e8c39e', '#c080ff'];
+    for (let i = 0; i < 12; i++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.32, 6), new THREE.MeshStandardMaterial({ color: bottleCols[i % 5], roughness: 0.4 })); b.position.set(-4.2 + i * 0.5, GY + 1.22, -4.35); g.add(b); }
+    for (let i = 0; i < 3; i++) cyl(0.1, 0.1, 0.5, '#d7ccc8', -3.6 + i * 0.55, GY + 1.15, -4.05, g, 8);
+    for (const px of [-4.4, 2.0]) { cyl(0.08, 0.1, 2.7, '#6d4c41', px, GY + 1.35, -4.3, g); W.circles.push({ x: v.x + px, z: v.z - 4.3, r: 0.16 }); }
+    const thatch = new THREE.Mesh(new THREE.ConeGeometry(3.6, 0.9, 4), mat('#d4a017', { flatShading: true })); thatch.rotation.y = Math.PI / 4; thatch.scale.set(1.35, 1, 0.55); thatch.position.set(-1.2, GY + 2.85, -4.3); g.add(thatch);
+    const sn = sign('BAR BEER', '#4e342e', 3.6, 0.7, 92, '#fff3e0'); sn.position.set(-1.2, GY + 2.15, -3.85); g.add(sn);
+    const sn2 = sign('BÃI BIỂN', '#1b5e20', 2.4, 0.42, 70, '#fff8e1'); sn2.position.set(-1.2, GY + 1.55, -3.82); g.add(sn2);
+    for (let i = 0; i < 5; i++) { const sx = -3.6 + i * 1.2; cyl(0.22, 0.22, 0.08, '#efebe9', sx, GY + 0.78, -3.15, g, 10); cyl(0.04, 0.05, 0.74, '#8d6e63', sx, GY + 0.4, -3.15, g);
+      addSpot({ kind: 'stool', venue: 'bar', x: v.x + sx, z: v.z - 3.15, y: GY, seatH: 0.82, rot: Math.PI, anim: 'drink', seat: true, prop: 'beer' }); }
+    // small outdoor DJ deck, open to the sand (screen faces the sea)
+    box(2.4, 0.9, 0.7, '#6d4c41', 4.0, GY + 0.45, -4.5, g); addBox(v.x + 4.0, v.z - 4.5, 2.4, 0.7);
+    for (const s of [-0.55, 0.55]) { const tt = cyl(0.22, 0.22, 0.05, '#5d4037', 4.0 + s, GY + 0.95, -4.5, g, 12); W.updaters.push((t) => tt.rotation.y = t * 3); }
+    W.stage = { x: v.x + 4.0, z: v.z - 4.95, y: GY + 1.9, w: 3.2, h: 1.7, floorY: GY, bx: v.x, bz: v.z };
+    addSpot({ kind: 'staff', role: 'dj', x: v.x + 4.0, z: v.z - 3.7, y: GY, rot: 0, anim: 'dj' });
+    addSpot({ kind: 'staff', role: 'bartender', x: v.x - 1.2, z: v.z - 4.85, y: GY, rot: 0, anim: 'bartend' });
+    W.routes.bartender = [{ x: v.x - 3.6, z: v.z - 4.85 }, { x: v.x - 1.2, z: v.z - 4.85 }, { x: v.x + 1.2, z: v.z - 4.85 }];
+    // open wooden dance deck on the sand
+    const N = 4, tile = 1.05, fx = 3.6, fz = 0.5; const tiles = new THREE.InstancedMesh(new THREE.BoxGeometry(tile * 0.92, 0.04, tile * 0.92), new THREE.MeshBasicMaterial({ toneMapped: false }), N * N);
+    const m4 = new THREE.Matrix4(); let k = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) { m4.makeTranslation(v.x + fx + (i - 1.5) * tile, GY + 0.08, v.z + fz + (j - 1.5) * tile); tiles.setMatrixAt(k, m4); tiles.setColorAt(k++, new THREE.Color('#c4a574')); }
     scene.add(tiles);
-    const palette = ['#ff2fbf', '#21e6ff', '#9b30ff', '#ffe600', '#00ff9c', '#ff5a1f'].map(cc => new THREE.Color(cc)); const tmpc = new THREE.Color();
-    W.updaters.push((t, beat, bi, night) => { let q = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) { const p = palette[(i + j + bi) % palette.length]; tmpc.copy(p).multiplyScalar((((i * 7 + j * 3 + bi) % 3 === 0) ? 1 : 0.35) * (night ? 1 : 0.7)); tiles.setColorAt(q++, tmpc); } tiles.instanceColor.needsUpdate = true; });
-    W.danceFloor = { x: v.x + fx, z: v.z + fz, half: 2.5 };
-    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) addSpot({ kind: 'dance', venue: 'bar', x: v.x + fx + (i - 1) * 1.4 + rr(-0.2, 0.2), z: v.z + fz + (j - 1) * 1.4 + rr(-0.2, 0.2), y: DY, rot: Math.PI + rr(-0.6, 0.6), anim: 'dance1' });
-    // standing tables
-    for (const [tx, tz] of [[-4.5, 0.5], [-4.5, 3.6], [-1.2, 3.8]]) { cyl(0.35, 0.35, 0.05, '#444', tx, DY + 1.05, tz, g, 12); cyl(0.05, 0.05, 1.05, '#888', tx, DY + 0.52, tz, g); addBox(v.x + tx, v.z + tz, 0.6, 0.6);
-      for (const s of [-1, 1]) addSpot({ kind: 'barStand', venue: 'bar', x: v.x + tx + s * 0.65, z: v.z + tz, y: DY, rot: s > 0 ? -Math.PI / 2 : Math.PI / 2, anim: 'drink', prop: 'beer', pair: true }); }
-    // neon arch + sign
-    for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.2, 4, 0.2), neonMat(s < 0 ? '#ff2fbf' : '#21e6ff')); p.position.set(s * 2.4, DY + 2, 6); g.add(p); W.circles.push({ x: v.x + s * 2.4, z: v.z + 6, r: 0.2 }); }
-    const top = new THREE.Mesh(new THREE.BoxGeometry(5, 0.2, 0.2), neonMat('#ffe600')); top.position.set(0, DY + 4, 6); g.add(top);
-    const sn = sign('BAR BEER', '#ff2fbf', 4.6, 1.2, 120); sn.position.set(0, DY + 4.75, 6); g.add(sn);
-    const sn2 = sign('BAR BEER', '#21e6ff', 5.0, 1.1, 100); sn2.position.set(-2.5, DY + 3.0, -5.42); g.add(sn2);
-    // string lights
-    const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.07, 6, 4), new THREE.MeshBasicMaterial({ toneMapped: false }), 60); let bk = 0;
-    for (let i = 0; i < 60; i++) { const tt = (i % 20) / 19, row = Math.floor(i / 20); const x = -7.5 + tt * 15, z = -4.5 + row * 4.5; m4.makeTranslation(v.x + x, DY + 3.6 - Math.sin(tt * Math.PI) * 0.6, v.z + z); bulbs.setMatrixAt(bk, m4); bulbs.setColorAt(bk++, palette[i % 6]); }
+    const palette = ['#ffe082', '#ffcc80', '#fff8e1', '#ffab91', '#c5e1a5', '#bcaaa4'].map(cc => new THREE.Color(cc)); const tmpc = new THREE.Color();
+    W.updaters.push((t, beat, bi, night) => { let q = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) { const p = palette[(i + j + bi) % palette.length]; tmpc.copy(p).multiplyScalar(night ? 0.85 : 0.45); tiles.setColorAt(q++, tmpc); } tiles.instanceColor.needsUpdate = true; });
+    W.danceFloor = { x: v.x + fx, z: v.z + fz, half: 2.3 };
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) addSpot({ kind: 'dance', venue: 'bar', x: v.x + fx + (i - 1) * 1.3 + rr(-0.15, 0.15), z: v.z + fz + (j - 0.5) * 1.3 + rr(-0.15, 0.15), y: GY, rot: rr(-0.4, 0.4), anim: 'dance1' });
+    // umbrella tables on the sand, facing the sea
+    const umbC = ['#ffffff', '#e53935', '#1e88e5', '#fdd835'];
+    [[-5.4, -0.4], [-5.2, 2.8], [-1.4, 3.4], [0.6, 1.6]].forEach(([tx, tz], i) => {
+      cyl(0.05, 0.06, 2.5, '#efebe9', tx, GY + 1.25, tz, g); W.circles.push({ x: v.x + tx, z: v.z + tz, r: 0.14 });
+      const um = new THREE.Mesh(new THREE.ConeGeometry(1.7, 0.55, 8, 1, true), mat(umbC[i], { side: THREE.DoubleSide })); um.position.set(tx, GY + 2.55, tz); g.add(um);
+      cyl(0.42, 0.42, 0.06, '#d7ccc8', tx, GY + 0.78, tz, g, 10); addBox(v.x + tx, v.z + tz, 0.7, 0.7);
+      for (const s of [-1, 1]) { box(0.42, 0.4, 0.42, '#8d6e63', tx + s * 0.95, GY + 0.28, tz, g);
+        addSpot({ kind: 'barStand', venue: 'bar', x: v.x + tx + s * 0.95, z: v.z + tz, y: GY, rot: s > 0 ? -Math.PI / 2 : Math.PI / 2, anim: 'drink', prop: 'beer', pair: true }); }
+    });
+    // string lights between beach poles
+    const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.07, 6, 4), new THREE.MeshBasicMaterial({ color: '#fff4d0', toneMapped: false }), 48); let bk = 0;
+    const warm = ['#fff4d0', '#ffcc80', '#ffe082', '#ffab91'].map(c => new THREE.Color(c));
+    for (let i = 0; i < 48; i++) { const tt = (i % 16) / 15, row = Math.floor(i / 16); const x = -7.2 + tt * 14.4, z = -2.2 + row * 3.6; m4.makeTranslation(v.x + x, GY + 3.3 - Math.sin(tt * Math.PI) * 0.45, v.z + z); bulbs.setMatrixAt(bk, m4); bulbs.setColorAt(bk++, warm[i % 4]); }
     scene.add(bulbs);
-    for (const [px, pz] of [[-7.8, -5.8], [7.8, -5.8], [-7.8, 5.8], [7.8, 5.8]]) { cyl(0.08, 0.08, 3.8, '#222', px, DY + 1.9, pz, g); W.circles.push({ x: v.x + px, z: v.z + pz, r: 0.15 }); }
-    // moving spotlights
+    for (const [px, pz] of [[-7.4, -5.2], [7.4, -5.2], [-7.4, 5.2], [7.4, 5.2], [-7.4, 1.2], [7.4, 1.2]]) { cyl(0.07, 0.09, 3.2, '#5d4037', px, GY + 1.6, pz, g); W.circles.push({ x: v.x + px, z: v.z + pz, r: 0.14 }); }
+    for (const [px, pz] of [[-6.2, 4.6], [6.4, 4.8]]) { cyl(0.12, 0.16, 2.2, '#6d4c41', px, GY + 1.1, pz, g);
+      for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.6, 4), mat(i % 2 ? '#2e7d32' : '#43a047')); leaf.position.set(px + Math.cos(a) * 0.15, GY + 2.5, pz + Math.sin(a) * 0.15); leaf.rotation.z = Math.cos(a) * 0.9; leaf.rotation.x = Math.sin(a) * 0.9; g.add(leaf); } }
     W.spots3 = [];
-    for (let i = 0; i < 2; i++) { const sl = new THREE.SpotLight(i ? '#21e6ff' : '#ff2fbf', 0, 16, 0.45, 0.5, 1.5); sl.position.set(v.x + fx + (i ? 3 : -3), DY + 5.5, v.z + fz - 3); scene.add(sl); scene.add(sl.target);
-      const cone = new THREE.Mesh(new THREE.ConeGeometry(1.4, 5.5, 16, 1, true), new THREE.MeshBasicMaterial({ color: i ? '#21e6ff' : '#ff2fbf', transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
-      cone.geometry.translate(0, -2.75, 0); cone.position.copy(sl.position); scene.add(cone); W.spots3.push({ sl, cone, i }); }
+    for (let i = 0; i < 2; i++) { const sl = new THREE.SpotLight(i ? '#ffe082' : '#ffcc80', 0, 14, 0.6, 0.6, 1.4); sl.position.set(v.x + fx + (i ? 1.5 : -1.5), GY + 4.2, v.z + fz - 1); scene.add(sl); scene.add(sl.target);
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(1.2, 4.2, 12, 1, true), new THREE.MeshBasicMaterial({ color: '#ffe082', transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+      cone.geometry.translate(0, -2.1, 0); cone.position.copy(sl.position); scene.add(cone); W.spots3.push({ sl, cone, i }); }
     const tv = new THREE.Vector3(); const up = new THREE.Vector3(0, -1, 0);
-    W.updaters.push((t) => W.spots3.forEach(({ sl, cone, i }) => { tv.set(v.x + fx + Math.sin(t * 0.9 + i * 2) * 2.2, DY, v.z + fz + Math.cos(t * 1.1 + i) * 2.2); sl.target.position.copy(tv);
+    W.updaters.push((t) => W.spots3.forEach(({ sl, cone, i }) => { tv.set(v.x + fx + Math.sin(t * 0.4 + i) * 1.4, GY, v.z + fz + 0.4); sl.target.position.copy(tv);
       const dir = tv.clone().sub(sl.position).normalize(); cone.quaternion.setFromUnitVectors(up, dir); }));
-    const bl = new THREE.PointLight('#ff3fd8', 0, 16, 2); bl.position.set(-2.5, DY + 3, -2); g.add(bl); W.barLight = bl;
-    W.venues.bar = { id: 'bar', name: 'Bar Beer', icon: '🍺', x: v.x, z: v.z, counter: { x: v.x - 2.5, z: v.z - 3.2 }, entry: { x: v.x, z: v.z + 7.5 }, radius: 8,
+    const bl = new THREE.PointLight('#ffcc80', 0, 14, 2); bl.position.set(-1.2, GY + 2.4, -3.2); g.add(bl); W.barLight = bl;
+    W.venues.bar = { id: 'bar', name: 'Bar Beer', icon: '🍺', x: v.x, z: v.z, counter: { x: v.x - 1.2, z: v.z - 3.3 }, entry: { x: v.x, z: v.z - 8.2 }, radius: 11,
       menu: [{ id: 'biatuoi', name: 'Bia tươi', icon: '🍺', price: 10, prop: 'beer' }, { id: 'biachai', name: 'Bia chai', icon: '🍾', price: 8, prop: 'beer' }, { id: 'cocktail', name: 'Cocktail Neon', icon: '🍸', price: 20, prop: 'glass', color: '#21e6ff' }, { id: 'mojito', name: 'Mojito', icon: '🍹', price: 15, prop: 'glass', color: '#9be15d' }] };
-    label('🍺 Bar Beer', v.x, DY + 6.6, v.z + 6);
+    label('🍺 Bar Beer · Bãi biển', v.x, GY + 4.2, v.z);
   }
   // ---- Vũ Trường (nightclub) – indoor club, open 21:00–02:00 ----
   { const v = V.club; const g = new THREE.Group(); g.position.set(v.x, 0, v.z); scene.add(g);
-    const X = (lx) => v.x + lx, Z = (lz) => v.z + lz; const HW = 8.5, HD = 7.5, WH = 5.6;
+    const X = (lx) => v.x + lx, Z = (lz) => v.z + lz; const HW = 12, HD = 10.5, WH = 5.6;
     deck(v.x, v.z, HW * 2, HD * 2, DY, '#14101c');
     const C = W.club = { x: v.x, z: v.z, hw: HW, hd: HD, y: DY, walls: [], tables: [], master: null, door: null, open: false, inside: false, fx: [] };
     C.contains = (x, z) => Math.abs(x - v.x) < HW && Math.abs(z - v.z) < HD;
@@ -263,97 +271,136 @@ export function buildWorld(scene, { mobile }) {
     box(3.2, 0.04, 2.6, '#7a0e2a', -HW - 1.6, DY + 0.02, 0, g);
     for (const s of [-1.4, 1.4]) { cyl(0.05, 0.06, 1, '#d4af37', -HW - 2.8, DY + 0.5, s, g, 8, { metalness: 0.9, roughness: 0.2 }); }
     addSpot({ kind: 'staff', role: 'bouncer', x: X(-HW - 1.4), z: Z(1.9), y: DY, rot: -Math.PI / 2, anim: 'idle' });
-    // stage + DJ booth + LED wall (main stage of the Saturday live show)
-    deck(X(6.95), v.z, 2.7, 9, DY + 0.8, '#0c0c12');
-    const stE = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, 9), neonMat('#21e6ff')); stE.position.set(5.58, DY + 0.78, 0); g.add(stE);
-    box(1.1, 1.1, 3.0, '#0b0b0b', 6.4, DY + 0.8 + 0.55, 0, g); addBox(X(6.4), Z(0), 1.1, 3.0);
-    const bS = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.14, 3.0), neonMat('#b04dff')); bS.position.set(5.84, DY + 1.6, 0); g.add(bS);
-    for (const s of [-0.7, 0.7]) { const tt = cyl(0.3, 0.3, 0.05, '#333', 6.4, DY + 1.93, s, g, 16); W.updaters.push((t) => tt.rotation.y = t * 4); }
-    for (const s of [-3.6, 3.6]) { box(0.9, 2.2, 0.9, '#111', 7.2, DY + 0.8 + 1.1, s, g); const cone = cyl(0.3, 0.18, 0.05, '#444', 6.74, DY + 2.2, s, g); cone.rotation.z = Math.PI / 2; W.updaters.push((t, beat) => cone.scale.setScalar(1 + beat * 0.2)); }
-    addSpot({ kind: 'staff', role: 'clubdj', x: X(7.3), z: Z(0), y: DY + 0.8, rot: -Math.PI / 2, anim: 'dj' });
-    addSpot({ kind: 'staff', role: 'clubmc', x: X(6.6), z: Z(2.4), y: DY + 0.8, rot: -Math.PI / 2, anim: 'mc' });
-    const ledFrame = box(0.2, 3.9, 6.8, '#050505', 8.22, DY + 0.8 + 2.55, 0, g);
-    C.led = { x: X(8.1), y: DY + 0.8 + 2.55, z: v.z, w: 6.4, h: 3.6, rotY: -Math.PI / 2 };
-    C.stage = { x: X(6.2), z: v.z, floorY: DY + 0.8 };
-    // LED dance floor 7x7
-    const N = 7, fxl = 0.6; const tiles = new THREE.InstancedMesh(new THREE.BoxGeometry(0.95, 0.05, 0.95), new THREE.MeshBasicMaterial({ toneMapped: false }), N * N);
-    const m4 = new THREE.Matrix4(); let k = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) { m4.makeTranslation(X(fxl + (i - 3)), DY + 0.03, Z(j - 3)); tiles.setMatrixAt(k, m4); tiles.setColorAt(k++, new THREE.Color('#9b30ff')); } scene.add(tiles);
+    // stage + DJ booth + LED wall — wider stage on the east wall
+    deck(X(10.35), v.z, 2.8, 12, DY + 0.8, '#0c0c12');
+    const stE = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, 12), neonMat('#21e6ff')); stE.position.set(8.92, DY + 0.78, 0); g.add(stE);
+    box(1.1, 1.1, 3.2, '#0b0b0b', 9.85, DY + 0.8 + 0.55, 0, g); addBox(X(9.85), Z(0), 1.1, 3.2);
+    const bS = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.14, 3.2), neonMat('#b04dff')); bS.position.set(9.28, DY + 1.6, 0); g.add(bS);
+    // Simulated Pioneer booth: two CDJ-3000X players flanking a DJM-V10. Props only — no audio routing.
+    { const topY = DY + 1.9; const metal = { metalness: 0.65, roughness: 0.32 };
+      const deckScreen = (title) => {
+        const cv = document.createElement('canvas'); cv.width = 256; cv.height = 120; const c2 = cv.getContext('2d');
+        c2.fillStyle = '#071018'; c2.fillRect(0, 0, 256, 120);
+        c2.fillStyle = '#e3f2fd'; c2.font = '700 22px sans-serif'; c2.fillText(title, 10, 26);
+        c2.strokeStyle = '#4fc3f7'; c2.lineWidth = 2; c2.beginPath();
+        for (let i = 0; i < 36; i++) { const px = 10 + i * 6.4, py = 72 + Math.sin(i * 0.85) * (16 + (i % 4) * 6); i ? c2.lineTo(px, py) : c2.moveTo(px, py); }
+        c2.stroke(); c2.fillStyle = '#69f0ae'; c2.font = '16px sans-serif'; c2.fillText('128.0 BPM', 10, 108);
+        const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+        return new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.14), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+      };
+      const faceRoom = (mesh, x, y, z) => { mesh.position.set(x, y, z); mesh.rotation.y = -Math.PI / 2; g.add(mesh); return mesh; };
+      const addCdj = (z) => {
+        box(0.36, 0.055, 0.48, '#161616', 9.91, topY + 0.03, z, g, metal);
+        const jog = cyl(0.1, 0.1, 0.02, '#222', 9.97, topY + 0.065, z + 0.08, g, 24, metal);
+        cyl(0.055, 0.055, 0.012, '#0a0a0a', 9.97, topY + 0.078, z + 0.08, g, 16);
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.086, 0.007, 6, 28), new THREE.MeshStandardMaterial({ color: '#eceff1', metalness: 0.85, roughness: 0.2 }));
+        ring.rotation.x = Math.PI / 2; ring.position.set(9.97, topY + 0.074, z + 0.08); g.add(ring);
+        W.updaters.push((t) => { jog.rotation.y = t * (C.open ? 2.2 : 0.35); });
+        const scr = deckScreen('CDJ-3000X'); scr.rotation.x = -0.85; faceRoom(scr, 9.67, topY + 0.1, z - 0.08);
+        box(0.028, 0.012, 0.028, '#00e676', 9.75, topY + 0.062, z + 0.16, g);
+        box(0.028, 0.012, 0.028, '#ff9100', 9.75, topY + 0.062, z + 0.1, g);
+        faceRoom(sign('CDJ-3000X', '#90caf9', 0.46, 0.1, 36, '#0d1117'), 9.27, topY + 0.16, z);
+      };
+      const addV10 = (z) => {
+        box(0.4, 0.07, 0.64, '#101014', 9.91, topY + 0.035, z, g, metal);
+        const cols = ['#ff5252', '#ffb300', '#69f0ae', '#40c4ff', '#7c4dff', '#ff80ab'];
+        for (let i = 0; i < 6; i++) { const fz = z - 0.22 + i * 0.075;
+          box(0.018, 0.08, 0.012, '#263238', 10.03, topY + 0.09, fz, g);
+          box(0.026, 0.018, 0.02, cols[i], 10.03, topY + 0.12, fz, g);
+          cyl(0.016, 0.016, 0.018, '#eceff1', 9.75, topY + 0.08, fz, g, 8, metal); }
+        cyl(0.038, 0.038, 0.028, '#ffd54f', 9.79, topY + 0.09, z + 0.26, g, 14, metal);
+        faceRoom(sign('DJM-V10', '#ffe082', 0.5, 0.11, 40, '#0d1117'), 9.27, topY + 0.18, z);
+      };
+      addCdj(-0.82); addV10(0); addCdj(0.82);
+    }
+    for (const s of [-5.4, 5.4]) { box(0.9, 2.2, 0.9, '#111', 10.7, DY + 0.8 + 1.1, s, g); const cone = cyl(0.3, 0.18, 0.05, '#444', 10.24, DY + 2.2, s, g); cone.rotation.z = Math.PI / 2; W.updaters.push((t, beat) => cone.scale.setScalar(1 + beat * 0.2)); }
+    addSpot({ kind: 'staff', role: 'clubdj', x: X(10.75), z: Z(0), y: DY + 0.8, rot: -Math.PI / 2, anim: 'dj' });
+    addSpot({ kind: 'staff', role: 'clubmc', x: X(10.15), z: Z(3.6), y: DY + 0.8, rot: -Math.PI / 2, anim: 'mc' });
+    const ledFrame = box(0.2, 3.9, 10, '#050505', 11.58, DY + 0.8 + 2.55, 0, g);
+    C.led = { x: X(11.48), y: DY + 0.8 + 2.55, z: v.z, w: 9.2, h: 3.6, rotY: -Math.PI / 2 };
+    C.stage = { x: X(9.7), z: v.z, floorY: DY + 0.8 };
+    // LED dance floor — wider than the old 7×7 pad
+    const NX = 10, NZ = 8, fxl = 0.2, tile = 1.05; const tiles = new THREE.InstancedMesh(new THREE.BoxGeometry(0.98, 0.05, 0.98), new THREE.MeshBasicMaterial({ toneMapped: false }), NX * NZ);
+    const m4 = new THREE.Matrix4(); let k = 0; for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++) { m4.makeTranslation(X(fxl + (i - (NX - 1) / 2) * tile), DY + 0.03, Z((j - (NZ - 1) / 2) * tile)); tiles.setMatrixAt(k, m4); tiles.setColorAt(k++, new THREE.Color('#9b30ff')); } scene.add(tiles);
     const pal = ['#b04dff', '#21e6ff', '#ff2fbf', '#ffe600', '#00ff9c', '#ff5a1f'].map(cc => new THREE.Color(cc)); const tc0 = new THREE.Color();
-    W.updaters.push((t, beat, bi) => { if (!C.open && !C.inside) return; let q = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) { const r = Math.hypot(i - 3, j - 3); const p = pal[(Math.floor(r) + bi) % pal.length]; tc0.copy(p).multiplyScalar(C.open ? (((Math.floor(r) + bi) % 2) ? 1 : 0.3) : 0.12); tiles.setColorAt(q++, tc0); } tiles.instanceColor.needsUpdate = true; });
-    W.clubFloor = { x: X(fxl), z: v.z, half: 3.5 };
-    for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) addSpot({ kind: 'dance', venue: 'club', x: X(fxl - 2.6 + i * 1.3 + rr(-0.2, 0.2)), z: Z(-2.6 + j * 1.75 + rr(-0.2, 0.2)), y: DY, rot: Math.PI / 2 + rr(-0.7, 0.7), anim: 'dance1' });
-    for (let j = 0; j < 7; j++) addSpot({ kind: 'crowd', venue: 'club', x: X(4.7 + (j % 2) * 0.5), z: Z(-3.3 + j * 1.1), y: DY, rot: Math.PI / 2 + rr(-0.3, 0.3), anim: 'hype' });
-    // bar counter (north wall)
-    box(5.6, 1.1, 0.8, '#0e0a14', 1.6, DY + 0.55, 6.2, g); addBox(X(1.6), Z(6.2), 5.6, 0.8);
-    const cS = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.06, 0.04), neonMat('#21e6ff')); cS.position.set(1.6, DY + 0.85, 5.78); g.add(cS);
-    const bc = ['#3fd17a', '#ffb300', '#2fb7ff', '#ff4f6d', '#c080ff']; for (let i = 0; i < 12; i++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.35, 6), new THREE.MeshStandardMaterial({ color: bc[i % 5], emissive: bc[i % 5], emissiveIntensity: 0.6 })); b.position.set(-1 + i * 0.45, DY + 1.7, 7.25); g.add(b); }
-    box(5.6, 0.05, 0.3, '#333', 1.6, DY + 1.5, 7.25, g);
-    for (let i = 0; i < 5; i++) { const sx = -0.6 + i * 1.1; cyl(0.24, 0.24, 0.08, '#b04dff', sx, DY + 0.78, 5.3, g, 12); cyl(0.04, 0.05, 0.78, '#999', sx, DY + 0.39, 5.3, g);
-      addSpot({ kind: 'stool', venue: 'club', x: X(sx), z: Z(5.3), y: DY, seatH: 0.82, rot: 0, anim: 'drink', seat: true, prop: 'glass' }); }
-    for (const sx of [-1.8, 4.9]) addSpot({ kind: 'lean', venue: 'club', x: X(sx), z: Z(5.4), y: DY, rot: 0, anim: 'drink', prop: 'beer' });
-    addSpot({ kind: 'staff', role: 'clubbar', x: X(1.6), z: Z(6.95), y: DY, rot: Math.PI, anim: 'bartend' });
-    W.routes.clubbar = [{ x: X(-0.6), z: Z(6.95) }, { x: X(1.6), z: Z(6.95) }, { x: X(3.8), z: Z(6.95) }];
-    // standing tables
-    for (const [tx, tz] of [[-5.4, -2.6], [-3.6, 3.6]]) { cyl(0.35, 0.35, 0.05, '#333', tx, DY + 1.05, tz, g, 12); cyl(0.05, 0.05, 1.05, '#888', tx, DY + 0.52, tz, g); addBox(X(tx), Z(tz), 0.6, 0.6);
+    W.updaters.push((t, beat, bi) => { if (!C.open && !C.inside) return; let q = 0; for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++) { const r = Math.hypot(i - (NX - 1) / 2, j - (NZ - 1) / 2); const p = pal[(Math.floor(r) + bi) % pal.length]; tc0.copy(p).multiplyScalar(C.open ? (((Math.floor(r) + bi) % 2) ? 1 : 0.3) : 0.12); tiles.setColorAt(q++, tc0); } tiles.instanceColor.needsUpdate = true; });
+    W.clubFloor = { x: X(fxl), z: v.z, half: 4.6 };
+    for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) addSpot({ kind: 'dance', venue: 'club', x: X(fxl - 3.4 + i * 1.35 + rr(-0.15, 0.15)), z: Z(-2.4 + j * 1.6 + rr(-0.15, 0.15)), y: DY, rot: Math.PI / 2 + rr(-0.7, 0.7), anim: 'dance1' });
+    for (let j = 0; j < 9; j++) addSpot({ kind: 'crowd', venue: 'club', x: X(7.6 + (j % 2) * 0.55), z: Z(-5.2 + j * 1.3), y: DY, rot: Math.PI / 2 + rr(-0.3, 0.3), anim: 'hype' });
+    // bar counter along the wider north wall
+    box(8.2, 1.1, 0.8, '#0e0a14', 0.4, DY + 0.55, 9.2, g); addBox(X(0.4), Z(9.2), 8.2, 0.8);
+    const cS = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.06, 0.04), neonMat('#21e6ff')); cS.position.set(0.4, DY + 0.85, 8.78); g.add(cS);
+    const bc = ['#3fd17a', '#ffb300', '#2fb7ff', '#ff4f6d', '#c080ff']; for (let i = 0; i < 16; i++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.35, 6), new THREE.MeshStandardMaterial({ color: bc[i % 5], emissive: bc[i % 5], emissiveIntensity: 0.6 })); b.position.set(-3.4 + i * 0.48, DY + 1.7, 10.2); g.add(b); }
+    box(8.2, 0.05, 0.3, '#333', 0.4, DY + 1.5, 10.2, g);
+    for (let i = 0; i < 7; i++) { const sx = -2.8 + i * 1.05; cyl(0.24, 0.24, 0.08, '#b04dff', sx, DY + 0.78, 8.3, g, 12); cyl(0.04, 0.05, 0.78, '#999', sx, DY + 0.39, 8.3, g);
+      addSpot({ kind: 'stool', venue: 'club', x: X(sx), z: Z(8.3), y: DY, seatH: 0.82, rot: 0, anim: 'drink', seat: true, prop: 'glass' }); }
+    for (const sx of [-4.2, 4.6]) addSpot({ kind: 'lean', venue: 'club', x: X(sx), z: Z(8.4), y: DY, rot: 0, anim: 'drink', prop: 'beer' });
+    addSpot({ kind: 'staff', role: 'clubbar', x: X(0.4), z: Z(9.85), y: DY, rot: Math.PI, anim: 'bartend' });
+    W.routes.clubbar = [{ x: X(-2.4), z: Z(9.85) }, { x: X(0.4), z: Z(9.85) }, { x: X(3.2), z: Z(9.85) }];
+    // standing tables off the dance floor
+    for (const [tx, tz] of [[-7.6, -1.2], [-7.2, 4.6]]) { cyl(0.35, 0.35, 0.05, '#333', tx, DY + 1.05, tz, g, 12); cyl(0.05, 0.05, 1.05, '#888', tx, DY + 0.52, tz, g); addBox(X(tx), Z(tz), 0.6, 0.6);
       for (const s of [-1, 1]) addSpot({ kind: 'barStand', venue: 'club', x: X(tx + s * 0.65), z: Z(tz), y: DY, rot: s > 0 ? -Math.PI / 2 : Math.PI / 2, anim: 'drink', prop: 'glass', pair: true }); }
     // VIP tables (south wall) – sofas, bottle + sparkler, velvet rope with a gate
     const gold = { metalness: 0.9, roughness: 0.25 }; const sparkM = new THREE.PointsMaterial({ color: '#fff2a8', size: 0.07, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
-    [-6, -3, 0, 3].forEach((tx, i) => { const n = i + 1; box(1.9, 0.45, 0.7, '#5a0f2e', tx, DY + 0.22, -6.85, g); box(1.9, 0.7, 0.18, '#5a0f2e', tx, DY + 0.6, -7.2, g); box(0.7, 0.45, 0.9, '#5a0f2e', tx + 1.25, DY + 0.22, -5.7, g);
-      cyl(0.45, 0.4, 0.42, '#1a1a1a', tx, DY + 0.21, -5.75, g, 14); const top = cyl(0.48, 0.48, 0.04, '#d4af37', tx, DY + 0.44, -5.75, g, 14, gold);
-      addBox(X(tx), Z(-6.95), 1.9, 0.9); addBox(X(tx), Z(-5.75), 0.9, 0.9);
-      const bucket = cyl(0.12, 0.1, 0.2, '#c0c0c0', tx - 0.15, DY + 0.56, -5.75, g, 10, gold); const bottle = cyl(0.045, 0.06, 0.34, '#0f3d1e', tx - 0.15, DY + 0.78, -5.75, g, 8); cyl(0.05, 0.05, 0.08, '#d4af37', tx - 0.15, DY + 0.97, -5.75, g, 8);
-      for (const gx of [0.12, 0.25]) cyl(0.03, 0.02, 0.16, '#fff', tx + gx, DY + 0.54, -5.65, g, 6, { transparent: true, opacity: 0.7 });
-      const pg = new THREE.BufferGeometry(); const P = new Float32Array(40 * 3); pg.setAttribute('position', new THREE.BufferAttribute(P, 3)); const sp = new THREE.Points(pg, sparkM); sp.position.set(X(tx - 0.15), DY + 1.02, Z(-5.75)); sp.visible = false; scene.add(sp);
-      const seats = [addSpot({ kind: 'vipseat', venue: 'club', table: n, x: X(tx - 0.5), z: Z(-6.75), y: DY, seatH: 0.45, rot: 0, anim: 'sit', seat: true, prop: 'glass', clubZone: 'vip' }), addSpot({ kind: 'vipseat', venue: 'club', table: n, x: X(tx + 0.5), z: Z(-6.75), y: DY, seatH: 0.45, rot: 0, anim: 'sit', seat: true, prop: 'glass', clubZone: 'vip' }), addSpot({ kind: 'vipseat', venue: 'club', table: n, x: X(tx + 1.25), z: Z(-5.7), y: DY, seatH: 0.45, rot: -Math.PI / 2, anim: 'sit', seat: true, prop: 'glass', clubZone: 'vip' })];
-      const lb = textSprite(`Bàn VIP ${n}`, { size: 40, h: 0.5, bg: 'rgba(40,0,30,0.7)', border: '#d4af37' }); lb.position.set(X(tx), DY + 1.7, Z(-5.9)); scene.add(lb);
-      C.tables.push({ n, x: X(tx), z: Z(-5.75), seats, sparkler: sp, sparkOn: 0, bottle, label: lb }); });
+    [-8, -4, 0, 4, 8].forEach((tx, i) => { const n = i + 1; box(1.9, 0.45, 0.7, '#5a0f2e', tx, DY + 0.22, -9.85, g); box(1.9, 0.7, 0.18, '#5a0f2e', tx, DY + 0.6, -10.2, g); box(0.7, 0.45, 0.9, '#5a0f2e', tx + 1.25, DY + 0.22, -8.7, g);
+      cyl(0.45, 0.4, 0.42, '#1a1a1a', tx, DY + 0.21, -8.75, g, 14); const top = cyl(0.48, 0.48, 0.04, '#d4af37', tx, DY + 0.44, -8.75, g, 14, gold);
+      addBox(X(tx), Z(-9.95), 1.9, 0.9); addBox(X(tx), Z(-8.75), 0.9, 0.9);
+      const bucket = cyl(0.12, 0.1, 0.2, '#c0c0c0', tx - 0.15, DY + 0.56, -8.75, g, 10, gold); const bottle = cyl(0.045, 0.06, 0.34, '#0f3d1e', tx - 0.15, DY + 0.78, -8.75, g, 8); cyl(0.05, 0.05, 0.08, '#d4af37', tx - 0.15, DY + 0.97, -8.75, g, 8);
+      for (const gx of [0.12, 0.25]) cyl(0.03, 0.02, 0.16, '#fff', tx + gx, DY + 0.54, -8.65, g, 6, { transparent: true, opacity: 0.7 });
+      const pg = new THREE.BufferGeometry(); const P = new Float32Array(40 * 3); pg.setAttribute('position', new THREE.BufferAttribute(P, 3)); const sp = new THREE.Points(pg, sparkM); sp.position.set(X(tx - 0.15), DY + 1.02, Z(-8.75)); sp.visible = false; scene.add(sp);
+      const seats = [addSpot({ kind: 'vipseat', venue: 'club', table: n, x: X(tx - 0.5), z: Z(-9.75), y: DY, seatH: 0.45, rot: 0, anim: 'sit', seat: true, prop: 'glass', clubZone: 'vip' }), addSpot({ kind: 'vipseat', venue: 'club', table: n, x: X(tx + 0.5), z: Z(-9.75), y: DY, seatH: 0.45, rot: 0, anim: 'sit', seat: true, prop: 'glass', clubZone: 'vip' }), addSpot({ kind: 'vipseat', venue: 'club', table: n, x: X(tx + 1.25), z: Z(-8.7), y: DY, seatH: 0.45, rot: -Math.PI / 2, anim: 'sit', seat: true, prop: 'glass', clubZone: 'vip' })];
+      const lb = textSprite(`Bàn VIP ${n}`, { size: 40, h: 0.5, bg: 'rgba(40,0,30,0.7)', border: '#d4af37' }); lb.position.set(X(tx), DY + 1.7, Z(-8.9)); scene.add(lb);
+      C.tables.push({ n, x: X(tx), z: Z(-8.75), seats, sparkler: sp, sparkOn: 0, bottle, label: lb }); });
     W.updaters.push((t) => { for (const T of C.tables) { const on = T.sparkOn > t || T.always; T.sparkler.visible = !!on && (C.open || C.inside); if (!T.sparkler.visible) continue; const P = T.sparkler.geometry.attributes.position;
       for (let i = 0; i < 40; i++) { const k = (t * 1.7 + i / 40) % 1, a = i * 2.4; P.setXYZ(i, Math.cos(a) * k * 0.25, k * 0.55 - k * k * 0.3, Math.sin(a) * k * 0.25); } P.needsUpdate = true; } });
-    // rope: lz=-4.5 from lx -7.6..4.6, gate between table 2 and 3 at lx -1.5
+    // rope across the wider VIP, gate in the middle
     const ropeM = new THREE.MeshStandardMaterial({ color: '#8b0020', roughness: 0.6 });
-    for (const [a, b] of [[-7.9, -1.9], [-1.1, 5.6]]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, b - a, 6), ropeM); r.rotation.z = Math.PI / 2; r.position.set((a + b) / 2, DY + 0.85, -4.5); g.add(r); addBox(X((a + b) / 2), Z(-4.5), b - a, 0.2, 'vipRope'); }
-    for (const px of [-7.9, -4.9, -1.9, -1.1, 2.2, 5.5]) { cyl(0.05, 0.07, 0.95, '#d4af37', px, DY + 0.47, -4.5, g, 8, gold); cyl(0.08, 0.08, 0.08, '#d4af37', px, DY + 0.98, -4.5, g, 8, gold); }
-    C.vipGate = addBox(X(-1.5), Z(-4.5), 0.8, 0.2, 'vipGate'); const gateRope = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.8, 6), ropeM); gateRope.rotation.z = Math.PI / 2; gateRope.position.set(-1.5, DY + 0.85, -4.5); g.add(gateRope); C.vipGateMesh = gateRope;
-    const vipSign = textSprite('🍾 KHU VIP', { size: 44, h: 0.6, bg: 'rgba(60,0,40,0.8)', border: '#d4af37' }); vipSign.position.set(X(-1.5), DY + 2.6, Z(-4.5)); scene.add(vipSign);
-    addSpot({ kind: 'staff', role: 'host', x: X(-1.5), z: Z(-3.7), y: DY, rot: Math.PI, anim: 'idle' });
+    const ropeZ = -7.5;
+    for (const [a, b] of [[-10.2, -0.5], [0.5, 10.2]]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, b - a, 6), ropeM); r.rotation.z = Math.PI / 2; r.position.set((a + b) / 2, DY + 0.85, ropeZ); g.add(r); addBox(X((a + b) / 2), Z(ropeZ), b - a, 0.2, 'vipRope'); }
+    for (const px of [-10.2, -7.2, -4.2, -0.5, 0.5, 4.2, 7.2, 10.2]) { cyl(0.05, 0.07, 0.95, '#d4af37', px, DY + 0.47, ropeZ, g, 8, gold); cyl(0.08, 0.08, 0.08, '#d4af37', px, DY + 0.98, ropeZ, g, 8, gold); }
+    C.vipGate = addBox(X(0), Z(ropeZ), 1.0, 0.2, 'vipGate'); const gateRope = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.0, 6), ropeM); gateRope.rotation.z = Math.PI / 2; gateRope.position.set(0, DY + 0.85, ropeZ); g.add(gateRope); C.vipGateMesh = gateRope;
+    C.vipLocal = { x: 0, z: ropeZ };
+    const vipSign = textSprite('🍾 KHU VIP', { size: 44, h: 0.6, bg: 'rgba(60,0,40,0.8)', border: '#d4af37' }); vipSign.position.set(X(0), DY + 2.6, Z(ropeZ)); scene.add(vipSign);
+    addSpot({ kind: 'staff', role: 'host', x: X(0), z: Z(ropeZ + 0.9), y: DY, rot: Math.PI, anim: 'idle' });
     // Khu Master: raised gold balcony (north-west), stairs, best view of the DJ
-    const MY = DY + 1.6; deck(X(-6.1), Z(4.45), 4.2, 5.5, MY, '#2a2008');
-    box(4.2, 1.6, 5.5, '#1a1408', -6.1, DY + 0.8, 4.45, g);
-    for (const [y, x0] of [[DY + 1.2, -3.7], [DY + 0.8, -3.1], [DY + 0.4, -2.5]]) deck(X(x0), Z(6.6), 0.6, 1.2, y, '#3a2e10');
+    const MY = DY + 1.6; deck(X(-9.6), Z(5.95), 4.2, 5.5, MY, '#2a2008');
+    box(4.2, 1.6, 5.5, '#1a1408', -9.6, DY + 0.8, 5.95, g);
+    for (const [y, x0] of [[DY + 1.2, -7.2], [DY + 0.8, -6.6], [DY + 0.4, -6.0]]) deck(X(x0), Z(8.1), 0.6, 1.2, y, '#3a2e10');
     const railM = new THREE.MeshStandardMaterial({ color: '#d4af37', metalness: 0.9, roughness: 0.2, emissive: '#5a4000', emissiveIntensity: 0.4 });
     const rail = (w, d, lx, lz) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.08, d), railM); m.position.set(lx, MY + 1.0, lz); g.add(m); const m2 = m.clone(); m2.position.y = MY + 0.5; g.add(m2); };
-    rail(4.2, 0.06, -6.1, 1.72); rail(0.06, 4.2, -4.02, 3.8); addBox(X(-6.1), Z(1.72), 4.2, 0.15, 'masterRail'); addBox(X(-4.02), Z(3.8), 0.15, 4.2, 'masterRail');
-    for (let i = 0; i <= 6; i++) { cyl(0.03, 0.03, 1.0, '#d4af37', -8.2 + i * 0.7, MY + 0.5, 1.72, g, 6, gold); if (i < 6) cyl(0.03, 0.03, 1.0, '#d4af37', -4.02, MY + 0.5, 1.72 + i * 0.7, g, 6, gold); }
-    const gS = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.05, 0.05), neonMat('#ffd54f')); gS.position.set(-6.1, MY - 0.05, 1.68); g.add(gS);
-    C.masterGate = addBox(X(-4.0), Z(6.6), 0.2, 1.2, 'masterGate'); const mgm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1.2), railM); mgm.position.set(-4.0, MY + 0.8, 6.6); g.add(mgm); C.masterGateMesh = mgm;
-    const ms = []; for (const [sx, sz] of [[-7.6, 2.6], [-7.6, 3.6], [-7.6, 4.6], [-6.0, 2.6], [-6.0, 3.6], [-6.0, 4.6]]) { box(0.7, 0.45, 0.8, '#d4af37', sx, MY + 0.22, sz, g, gold); box(0.18, 0.7, 0.8, '#b8902a', sx - 0.36, MY + 0.55, sz, g, gold);
+    rail(4.2, 0.06, -9.6, 3.22); rail(0.06, 4.2, -7.52, 5.3); addBox(X(-9.6), Z(3.22), 4.2, 0.15, 'masterRail'); addBox(X(-7.52), Z(5.3), 0.15, 4.2, 'masterRail');
+    for (let i = 0; i <= 6; i++) { cyl(0.03, 0.03, 1.0, '#d4af37', -11.7 + i * 0.7, MY + 0.5, 3.22, g, 6, gold); if (i < 6) cyl(0.03, 0.03, 1.0, '#d4af37', -7.52, MY + 0.5, 3.22 + i * 0.7, g, 6, gold); }
+    const gS = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.05, 0.05), neonMat('#ffd54f')); gS.position.set(-9.6, MY - 0.05, 3.18); g.add(gS);
+    C.masterGate = addBox(X(-7.5), Z(8.1), 0.2, 1.2, 'masterGate'); const mgm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1.2), railM); mgm.position.set(-7.5, MY + 0.8, 8.1); g.add(mgm); C.masterGateMesh = mgm;
+    C.masterLocal = { x: -7.5, z: 8.1 };
+    const ms = []; for (const [sx, sz] of [[-11.1, 4.1], [-11.1, 5.1], [-11.1, 6.1], [-9.5, 4.1], [-9.5, 5.1], [-9.5, 6.1]]) { box(0.7, 0.45, 0.8, '#d4af37', sx, MY + 0.22, sz, g, gold); box(0.18, 0.7, 0.8, '#b8902a', sx - 0.36, MY + 0.55, sz, g, gold);
       ms.push(addSpot({ kind: 'masterseat', venue: 'club', x: X(sx), z: Z(sz), y: MY, seatH: 0.45, rot: Math.PI / 2, anim: 'sit', seat: true, prop: 'glass', clubZone: 'master' })); }
-    cyl(0.4, 0.35, 0.42, '#1a1a1a', -5.0, MY + 0.21, 3.6, g, 14); cyl(0.45, 0.45, 0.04, '#d4af37', -5.0, MY + 0.44, 3.6, g, 14, gold); addBox(X(-5.0), Z(3.6), 0.8, 0.8);
-    const mSign = textSprite('👑 KHU MASTER', { size: 44, h: 0.6, bg: 'rgba(50,35,0,0.85)', border: '#ffd54f' }); mSign.position.set(X(-6.1), MY + 2.5, Z(2.2)); scene.add(mSign);
+    cyl(0.4, 0.35, 0.42, '#1a1a1a', -8.5, MY + 0.21, 5.1, g, 14); cyl(0.45, 0.45, 0.04, '#d4af37', -8.5, MY + 0.44, 5.1, g, 14, gold); addBox(X(-8.5), Z(5.1), 0.8, 0.8);
+    const mSign = textSprite('👑 KHU MASTER', { size: 44, h: 0.6, bg: 'rgba(50,35,0,0.85)', border: '#ffd54f' }); mSign.position.set(X(-9.6), MY + 2.5, Z(3.7)); scene.add(mSign);
     // Master lounge prop set: blue tufted velvet armchair ("ghế boss"), round table with cream cloth, rotary phone, champagne, candle, gold chandelier
-    { const bc = createProp('armchair'); bc.position.set(-7.6, MY, 6.3); bc.rotation.y = Math.PI / 2; g.add(bc);
-      C.bossSeat = addSpot({ kind: 'bossseat', venue: 'club', x: X(-7.6) + 0.12, z: Z(6.3), y: MY, seatH: 0.5, rot: Math.PI / 2, anim: 'boss', panim: 'boss', seat: true, clubZone: 'master', boss: true });
-      cyl(0.42, 0.5, 0.74, '#e8dcc0', -7.45, MY + 0.37, 5.42, g, 16); cyl(0.44, 0.44, 0.02, '#f3ead6', -7.45, MY + 0.75, 5.42, g, 16); addBox(X(-7.45), Z(5.42), 0.9, 0.9);
-      box(0.2, 0.06, 0.16, '#151515', -7.3, MY + 0.79, 5.3, g, { metalness: 0.4, roughness: 0.3 }); cyl(0.05, 0.05, 0.02, '#d9d9d9', -7.3, MY + 0.83, 5.3, g, 12); box(0.18, 0.04, 0.05, '#111', -7.3, MY + 0.86, 5.3, g);
-      for (const [bx, bz] of [[-7.62, 5.55], [-7.5, 5.66]]) { cyl(0.04, 0.045, 0.24, '#7a0f1c', bx, MY + 0.88, bz, g, 8, { metalness: 0.3, roughness: 0.25 }); cyl(0.015, 0.03, 0.08, '#d4af37', bx, MY + 1.04, bz, g, 6, gold); }
-      cyl(0.035, 0.05, 0.06, '#d4af37', -7.7, MY + 0.79, 5.2, g, 8, gold); cyl(0.012, 0.012, 0.22, '#fff8e1', -7.7, MY + 0.93, 5.2, g, 6); const fl = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 4), new THREE.MeshBasicMaterial({ color: '#ffcc66' })); fl.position.set(-7.7, MY + 1.06, 5.2); fl.scale.y = 1.8; g.add(fl);
-      const ch = new THREE.Group(); ch.position.set(-6.9, MY + 2.6, 5.7); g.add(ch); const gm = new THREE.MeshStandardMaterial({ color: '#d4af37', metalness: 0.9, roughness: 0.25, emissive: '#5a4000', emissiveIntensity: 0.5 });
+    { const bc = createProp('armchair'); bc.position.set(-11.1, MY, 7.8); bc.rotation.y = Math.PI / 2; g.add(bc);
+      C.bossSeat = addSpot({ kind: 'bossseat', venue: 'club', x: X(-11.1) + 0.12, z: Z(7.8), y: MY, seatH: 0.5, rot: Math.PI / 2, anim: 'boss', panim: 'boss', seat: true, clubZone: 'master', boss: true });
+      cyl(0.42, 0.5, 0.74, '#e8dcc0', -10.95, MY + 0.37, 6.92, g, 16); cyl(0.44, 0.44, 0.02, '#f3ead6', -10.95, MY + 0.75, 6.92, g, 16); addBox(X(-10.95), Z(6.92), 0.9, 0.9);
+      box(0.2, 0.06, 0.16, '#151515', -10.8, MY + 0.79, 6.8, g, { metalness: 0.4, roughness: 0.3 }); cyl(0.05, 0.05, 0.02, '#d9d9d9', -10.8, MY + 0.83, 6.8, g, 12); box(0.18, 0.04, 0.05, '#111', -10.8, MY + 0.86, 6.8, g);
+      for (const [bx, bz] of [[-11.12, 7.05], [-11.0, 7.16]]) { cyl(0.04, 0.045, 0.24, '#7a0f1c', bx, MY + 0.88, bz, g, 8, { metalness: 0.3, roughness: 0.25 }); cyl(0.015, 0.03, 0.08, '#d4af37', bx, MY + 1.04, bz, g, 6, gold); }
+      cyl(0.035, 0.05, 0.06, '#d4af37', -11.2, MY + 0.79, 6.7, g, 8, gold); cyl(0.012, 0.012, 0.22, '#fff8e1', -11.2, MY + 0.93, 6.7, g, 6); const fl = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 4), new THREE.MeshBasicMaterial({ color: '#ffcc66' })); fl.position.set(-11.2, MY + 1.06, 6.7); fl.scale.y = 1.8; g.add(fl);
+      const ch = new THREE.Group(); ch.position.set(-10.4, MY + 2.6, 7.2); g.add(ch); const gm = new THREE.MeshStandardMaterial({ color: '#d4af37', metalness: 0.9, roughness: 0.25, emissive: '#5a4000', emissiveIntensity: 0.5 });
       const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.7, 5), gm); rod.position.y = 0.35; ch.add(rod); for (const [r, y] of [[0.42, 0], [0.26, 0.2]]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.02, 5, 20), gm); ring.rotation.x = Math.PI / 2; ring.position.y = y; ch.add(ring);
         for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; const cnd = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.09, 5), new THREE.MeshBasicMaterial({ color: '#fff3d0' })); cnd.position.set(Math.cos(a) * r, y + 0.06, Math.sin(a) * r); ch.add(cnd); const fm = new THREE.Mesh(new THREE.SphereGeometry(0.018, 5, 4), new THREE.MeshBasicMaterial({ color: '#ffc04d' })); fm.position.set(Math.cos(a) * r, y + 0.12, Math.sin(a) * r); ch.add(fm); } }
-      const cl = new THREE.PointLight('#ffcf7a', 1.4, 5); cl.position.set(-6.9, MY + 2.3, 5.7); g.add(cl);
-      const bs = textSprite('👑 Ghế boss', { size: 34, h: 0.36, bg: 'rgba(20,30,70,0.8)', border: '#ffd54f' }); bs.position.set(X(-7.6), MY + 1.75, Z(6.3)); scene.add(bs); C.bossLbl = bs; }
-    C.master = { y: MY, seats: ms, x: X(-6.1), z: Z(4.45), contains: (x, z) => x > X(-8.2) && x < X(-4.0) && z > Z(1.7) && z < Z(7.2) };
+      const cl = new THREE.PointLight('#ffcf7a', 1.4, 5); cl.position.set(-10.4, MY + 2.3, 7.2); g.add(cl);
+      const bs = textSprite('👑 Ghế boss', { size: 34, h: 0.36, bg: 'rgba(20,30,70,0.8)', border: '#ffd54f' }); bs.position.set(X(-11.1), MY + 1.75, Z(7.8)); scene.add(bs); C.bossLbl = bs; }
+    C.master = { y: MY, seats: ms, x: X(-9.6), z: Z(5.95), contains: (x, z) => x > X(-11.7) && x < X(-7.5) && z > Z(3.2) && z < Z(8.7) };
     // lasers, moving heads, haze
     const lasers = []; const lasG = new THREE.CylinderGeometry(0.015, 0.015, 15, 4, 1, true); lasG.translate(0, -7.5, 0); lasG.rotateZ(Math.PI / 2); lasG.rotateY(Math.PI);
     for (let i = 0; i < 8; i++) { const m = new THREE.Mesh(lasG, new THREE.MeshBasicMaterial({ color: ['#00ff66', '#ff2fbf', '#21e6ff', '#ff3030'][i % 4], transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
-      m.position.set(X(6.0), DY + 3.9, Z(i < 4 ? -1.2 : 1.2)); scene.add(m); lasers.push(m); }
+      m.position.set(X(9.2), DY + 3.9, Z(i < 4 ? -2.4 : 2.4)); scene.add(m); lasers.push(m); }
     const heads = []; const headG = new THREE.ConeGeometry(1.0, 5.2, 18, 1, true); headG.translate(0, -2.6, 0);
     for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(headG, new THREE.MeshBasicMaterial({ color: ['#b04dff', '#21e6ff', '#ff2fbf', '#ffe600'][i], transparent: true, opacity: 0.13, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
-      m.position.set(X(-2 + (i % 2) * 4.5), DY + WH - 0.2, Z(i < 2 ? -3 : 3)); scene.add(m); heads.push(m); box(0.4, 0.4, 0.4, '#222', -2 + (i % 2) * 4.5, DY + WH - 0.1, i < 2 ? -3 : 3, g); }
+      m.position.set(X(-4 + (i % 2) * 7), DY + WH - 0.2, Z(i < 2 ? -4 : 4)); scene.add(m); heads.push(m); box(0.4, 0.4, 0.4, '#222', -4 + (i % 2) * 7, DY + WH - 0.1, i < 2 ? -4 : 4, g); }
     const hc = document.createElement('canvas'); hc.width = hc.height = 64; const hx = hc.getContext('2d'); const gr = hx.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); hx.fillStyle = gr; hx.fillRect(0, 0, 64, 64);
     const hazeT = new THREE.CanvasTexture(hc); const haze = [];
-    for (let i = 0; i < 8; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: hazeT, color: '#c9a0ff', transparent: true, opacity: 0.05, depthWrite: false })); s.scale.setScalar(rr(3.5, 5.5)); s.position.set(X(rr(-6, 5)), DY + rr(0.6, 2.4), Z(rr(-5, 5))); s.userData.p = rr(0, 6); scene.add(s); haze.push(s); }
-    const clubL = new THREE.PointLight('#b04dff', 0, 18, 1.6); clubL.position.set(X(0.5), DY + 4.5, v.z); scene.add(clubL); C.light = clubL;
+    for (let i = 0; i < 10; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: hazeT, color: '#c9a0ff', transparent: true, opacity: 0.05, depthWrite: false })); s.scale.setScalar(rr(3.5, 6)); s.position.set(X(rr(-8, 7)), DY + rr(0.6, 2.6), Z(rr(-7, 7))); s.userData.p = rr(0, 6); scene.add(s); haze.push(s); }
+    const clubL = new THREE.PointLight('#b04dff', 0, 28, 1.6); clubL.position.set(X(0.5), DY + 4.5, v.z); scene.add(clubL); C.light = clubL;
     const fill = new THREE.PointLight('#ffd9a8', 0, 12, 1.8); fill.position.set(X(-5.5), DY + 4.2, Z(2)); scene.add(fill);
     const cc = new THREE.Color();
     W.updaters.push((t, beat, bi) => { const on = C.open; const vis = on && (C.inside || C.near);
@@ -361,7 +408,7 @@ export function buildWorld(scene, { mobile }) {
       heads.forEach((m, i) => { m.visible = vis; m.rotation.x = Math.sin(t * 0.8 + i * 1.7) * 0.5; m.rotation.z = Math.cos(t * 0.7 + i) * 0.5; m.material.opacity = 0.05 + beat * 0.04; });
       haze.forEach((s, i) => { s.visible = on && C.inside; s.position.y = DY + 1.2 + Math.sin(t * 0.2 + s.userData.p) * 0.8; s.material.color.copy(pal[(bi + i) % pal.length]).lerp(cc.set('#ffffff'), 0.15); const cam = window.__game && window.__game.camera; const dd = cam ? cam.position.distanceTo(s.position) : 9; s.material.opacity = 0.05 * Math.min(1, Math.max(0, (dd - 2.5) / 4)); });
       clubL.intensity = on ? (C.inside ? 22 : 6) + beat * 10 : (C.inside ? 6 : 0); clubL.color.copy(pal[bi % pal.length]); fill.intensity = C.inside ? (on ? 6 : 10) : 0; });
-    W.venues.club = { id: 'club', name: 'Vũ Trường', icon: '🪩', x: v.x, z: v.z, counter: { x: X(1.6), z: Z(5.3) }, entry: { x: X(-HW - 2.2), z: v.z }, inner: { x: X(-HW + 1.2), z: v.z }, radius: 9,
+    W.venues.club = { id: 'club', name: 'Vũ Trường', icon: '🪩', x: v.x, z: v.z, counter: { x: X(0.4), z: Z(8.3) }, entry: { x: X(-HW - 2.2), z: v.z }, inner: { x: X(-HW + 1.2), z: v.z }, radius: 13,
       menu: [{ id: 'cocktailc', name: 'Cocktail Galaxy', icon: '🍸', price: 25, prop: 'glass', color: '#b04dff' }, { id: 'tequila', name: 'Shot "Sóng Đêm"', icon: '🥃', price: 15, prop: 'glass', color: '#ffb300' }, { id: 'nuocsuoi', name: 'Nước suối', icon: '💧', price: 5, prop: 'glass', color: '#bbdefb' }, { id: 'biaclub', name: 'Bia chai', icon: '🍺', price: 12, prop: 'beer' }] };
     label('🪩 Vũ Trường', X(-HW - 0.6), DY + 6.6, v.z);
   }
@@ -388,8 +435,8 @@ export function buildWorld(scene, { mobile }) {
   const umbCols = [['#ff5252', '#ffffff'], ['#2196f3', '#ffffff'], ['#ffeb3b', '#ff9800'], ['#4caf50', '#ffffff'], ['#e91e63', '#fce4ec']];
   const umbGeo = new THREE.ConeGeometry(1.6, 0.6, 8, 1, true);
   let ui = 0;
-  for (let x = -4; x <= 26; x += 5) { // loungers + umbrellas
-    const z = findZ(x, 0.95); const y = height(x, z); const cols2 = umbCols[ui++ % umbCols.length];
+  for (let x = -4; x <= 26; x += 5) { // loungers + umbrellas (keep clear of the beach beer garden)
+    const z = findZ(x, 0.95); if (Math.abs(x - V.bar.x) < V.bar.w && Math.abs(z - V.bar.z) < V.bar.d + 1) continue; const y = height(x, z); const cols2 = umbCols[ui++ % umbCols.length];
     cyl(0.04, 0.04, 2.6, '#eee', x, y + 1.3, z); const u = new THREE.Mesh(umbGeo, mat(cols2[0], { side: THREE.DoubleSide, flatShading: true })); u.position.set(x, y + 2.7, z); scene.add(u);
     const u2 = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.2, 8), mat(cols2[1])); u2.position.set(x, y + 3.0, z); scene.add(u2);
     W.circles.push({ x, z, r: 0.12 });
@@ -530,7 +577,7 @@ export function buildWorld(scene, { mobile }) {
       const b = sign(t.name, '#3e2723', 1.9, 0.34, 72, '#ffe0b2'); b.position.x = 1.0; g.add(b); const tip = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.3, 3), mat('#ffe0b2')); tip.rotation.z = -Math.PI / 2; tip.position.x = 2.08; g.add(tip); }); };
   const tg2 = (v, n) => ({ x: v.x, z: v.z, name: n });
   signpost(center.x + 1.6, center.z + 1.6, [tg2(vv.bar, 'Bar Beer'), tg2(vv.club, 'Vũ Trường'), tg2(vv.restaurant, 'Quán Ăn'), tg2(vv.cafe, 'Cafe'), tg2(vv.kiosk, 'Quầy Đồ Uống'), { x: 10, z: 50, name: 'Bãi Biển' }]);
-  signpost(-11, 38, [tg2(center, 'Quảng Trường'), { x: 10, z: 50, name: 'Bãi Biển' }, { x: -33, z: -9, name: 'Thác Nước' }, { x: 36, z: 44, name: 'Lều VIP' }]);
+  signpost(-11, 38, [tg2(center, 'Quảng Trường'), tg2(vv.bar, 'Bar Beer'), { x: 10, z: 50, name: 'Bãi Biển' }, { x: -33, z: -9, name: 'Thác Nước' }, { x: 36, z: 44, name: 'Lều VIP' }]);
   signpost(1.6, -24, [{ x: -2, z: -40, name: 'Đồi Ngắm Cảnh' }, tg2(vv.bar, 'Bar Beer'), tg2(vv.club, 'Vũ Trường')]);
   signpost(vv.club.entry.x - 1.5, vv.club.entry.z + 3.2, [tg2(vv.club, 'Vũ Trường'), tg2(vv.bar, 'Bar Beer'), tg2(center, 'Quảng Trường')]);
   // plaza fountain

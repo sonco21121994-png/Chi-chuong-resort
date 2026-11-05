@@ -12,8 +12,9 @@ G.club = { vipTable, hasMaster, nightKey };
 
 // NPC paths through the gates (NPCs don't collide but should look natural)
 const vx = C.x, vz = C.z;
-for (const T of C.tables) for (const s of T.seats) { s.table = T.n; s.via = [{ x: vx - 1.5, z: vz - 3.6 }, { x: vx - 1.5, z: vz - 5.2 }]; }
-for (const s of C.master.seats) s.via = [{ x: vx - 1.8, z: vz + 6.6 }, { x: vx - 2.5, z: vz + 6.6 }, { x: vx - 3.7, z: vz + 6.6 }, { x: vx - 4.7, z: vz + 6.6 }];
+const vipL = C.vipLocal || { x: -1.5, z: -4.5 }, masL = C.masterLocal || { x: -4, z: 6.6 };
+for (const T of C.tables) for (const s of T.seats) { s.table = T.n; s.via = [{ x: vx + vipL.x, z: vz + vipL.z + 1.1 }, { x: vx + vipL.x, z: vz + vipL.z - 0.6 }]; }
+for (const s of C.master.seats) s.via = [{ x: vx + masL.x + 2.4, z: vz + masL.z }, { x: vx + masL.x + 1.2, z: vz + masL.z }, { x: vx + masL.x, z: vz + masL.z }];
 
 function evictSeats(seats) { for (const s of seats) { const n = s.occupant; if (n && n !== player && npcs.includes(n)) G.goAct(n, 'clubStand'); } }
 function applyReservations() { const tn = vipTable(); for (const T of C.tables) { T.seats.forEach(s => s.reserved = T.n === tn); T.label && (T.label.material.opacity = T.n === tn ? 1 : 0.85); } if (tn) evictSeats(C.tables.find(T => T.n === tn).seats); }
@@ -93,8 +94,8 @@ G.enterClub = enterClub;
   if (C.inside && hasMaster() && C.master.contains(px, pz)) btns.unshift(['👑 Mưa vàng', () => special('goldrain')], ['🥂 Nâng ly Master', () => special('champagne')], ['🤘 Rock tay', () => G.doEmote('rock')]);
   if (C.inside && hasMaster() && C.master.contains(px, pz) && C.bossSeat && !G.player.seat) btns.unshift(['👑 Ngồi ghế boss', () => G.sitAt(C.bossSeat)]);
   if (!btns.some(b => b[0] === '🤘 Rock tay') && C.inside && (myTable() || hasMaster()) && G.player.seat && G.player.seat.clubZone) btns.unshift(['🤘 Rock tay', () => G.doEmote('rock')]);
-  if (C.inside && !vipTable() && !hasMaster() && Math.hypot(px - (vx - 1.5), pz - (vz - 4.5)) < 2.2) btns.unshift(['🔒 Khu VIP – đặt bàn', () => G.openShop('club')]);
-  if (C.inside && !hasMaster() && Math.hypot(px - (vx - 3.2), pz - (vz + 6.6)) < 2) btns.unshift(['🔒 Khu Master – mua vé', () => G.openShop('club')]);
+  if (C.inside && !vipTable() && !hasMaster() && Math.hypot(px - (vx + vipL.x), pz - (vz + vipL.z)) < 2.2) btns.unshift(['🔒 Khu VIP – đặt bàn', () => G.openShop('club')]);
+  if (C.inside && !hasMaster() && Math.hypot(px - (vx + masL.x), pz - (vz + masL.z)) < 2.2) btns.unshift(['🔒 Khu Master – mua vé', () => G.openShop('club')]);
 });
 
 // when the doors open, a good part of the island heads to the club (night owls)
