@@ -9,6 +9,23 @@ npm start
 
 Mở http://localhost:8080
 
+## Tài khoản trên Render (gói miễn phí)
+
+Tài khoản nằm trong SQLite `server/data/daongoc.db`. Ổ đĩa của web service miễn phí bị xóa mỗi lần deploy, restart, hoặc sau khi máy chủ ngủ. Đăng nhập khi đó trả về "Sai biệt danh hoặc mật khẩu" dù mật khẩu đúng, vì nick không còn trong database. Hoa/thường không ảnh hưởng: `SonCo5G` và `sonco5g` là cùng một nick.
+
+Việc cần làm: mở tab **Đăng ký** và tạo lại đúng biệt danh đó (email nên điền để dùng Quên mật khẩu). Nếu biệt danh đã có người dùng, tài khoản vẫn còn — dùng Quên mật khẩu với email đã đăng ký.
+
+Đĩa bền chỉ gắn được trên instance trả phí. Sau khi nâng cấp, thêm vào `render.yaml`:
+
+```yaml
+disk:
+  name: chi-chuong-data
+  mountPath: /var/data
+  sizeGB: 1
+```
+
+và biến `DB=/var/data/daongoc.db`.
+
 ## Đặt lại mật khẩu (email)
 
 Người chơi bấm **Quên mật khẩu?** trên màn đăng nhập, nhập email đã đăng ký (và biệt danh nếu nhớ). Máy chủ gửi liên kết một lần, hết hạn sau 45 phút. Mở liên kết trên cùng trang (`/?reset=...`) để đặt mật khẩu mới.

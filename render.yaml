@@ -1,3 +1,6 @@
+# Free web services have an ephemeral disk: server/data/daongoc.db (accounts) is wiped
+# on every deploy, restart, and spin-down. A persistent disk requires a paid instance.
+# After upgrading, add disk.mountPath /var/data and env DB=/var/data/daongoc.db.
 services:
   - type: web
     name: chi-chuong-resort

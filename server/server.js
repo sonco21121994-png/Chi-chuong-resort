@@ -12,6 +12,8 @@ import { cleanText, checkNick, nickKey, normNick } from './filter.mjs';
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dir, '..');
 const PORT = +process.env.PORT || 8080;
+// Default path is on the service disk. Render's free filesystem is wiped on every deploy, restart, and spin-down.
+// Set DB to a persistent-disk mount (paid instance) to keep accounts. See README.
 const DBFILE = process.env.DB || path.join(__dir, 'data', 'daongoc.db');
 fs.mkdirSync(path.dirname(DBFILE), { recursive: true });
 const log = (...a) => console.log(new Date(Date.now() + 7 * 3600e3).toISOString().replace('T', ' ').slice(0, 19), '(GMT+7)', ...a);
@@ -61,7 +63,9 @@ const Q = {
   dm: q('INSERT INTO dms(src,dst,text,ts) VALUES(?,?,?,?)'), dmHist: q('SELECT src,dst,text,ts FROM dms WHERE (src=? AND dst=?) OR (src=? AND dst=?) ORDER BY ts DESC LIMIT 40'),
   wkReward: q('SELECT * FROM week_rewards WHERE week=? AND user_id=?'), insWkReward: q('INSERT OR IGNORE INTO week_rewards(week,user_id,rank,xu) VALUES(?,?,?,?)'),
   deck: q("SELECT id,nick,data,last_seen FROM users WHERE id!=? AND banned=0 AND json_extract(data,'$.dating.on')=1 ORDER BY COALESCE(json_extract(data,'$.dating.hlUntil'),0)>? DESC, last_seen DESC LIMIT 80"),
+  userCount: q('SELECT COUNT(*) c FROM users'),
 };
+log('db', DBFILE, 'users', Q.userCount.get().c);
 
 // ---------------- helpers ----------------
 const scrypt = (pw, salt) => new Promise((res, rej) => crypto.scrypt(pw, salt, 64, { N: 16384, r: 8, p: 1 }, (e, k) => e ? rej(e) : res(k)));
@@ -212,7 +216,7 @@ async function api(req, res, p) {
     if (f && f.until > Date.now()) return send(res, 429, { error: `Sai quá nhiều lần. Thử lại sau ${Math.ceil((f.until - Date.now()) / 60000)} phút` });
     if (limited('login:' + ip, 30, 600e3)) return send(res, 429, { error: 'Quá nhiều lần đăng nhập từ mạng này, thử lại sau ít phút' });
     const u = Q.userByKey.get(key); const ok = u && typeof b.password === 'string' && await verifyPw(b.password, u.pass);
-    if (!ok) { const n = (f && f.until < Date.now() && f.n >= 5 ? 0 : f ? f.n : 0) + 1; fails.set(fk, { n, last: Date.now(), until: n >= 5 ? Date.now() + 10 * 60e3 : 0 }); return send(res, 401, { error: `Sai biệt danh hoặc mật khẩu${n >= 3 ? ` (còn ${Math.max(0, 5 - n)} lần trước khi bị khóa 10 phút)` : ''}` }); }
+    if (!ok) { const n = (f && f.until < Date.now() && f.n >= 5 ? 0 : f ? f.n : 0) + 1; fails.set(fk, { n, last: Date.now(), until: n >= 5 ? Date.now() + 10 * 60e3 : 0 }); return send(res, 401, { error: `Sai biệt danh hoặc mật khẩu${n >= 3 ? ` (còn ${Math.max(0, 5 - n)} lần trước khi bị khóa 10 phút)` : ''}. Hoa/thường không đổi nick. Nếu mật khẩu đúng, tài khoản có thể đã mất khi máy chủ miễn phí khởi động lại — hãy đăng ký lại cùng biệt danh.` }); }
     if (u.banned) return send(res, 403, { error: 'Tài khoản đã bị khóa do vi phạm nội quy' });
     fails.delete(fk); log('login', u.id, u.nick, ip); return send(res, 200, session(u, !!b.remember, req));
   }

@@ -37,6 +37,7 @@ const auth = el('div', { id: 'auth', className: 'overlay' }, `<div class="card">
     <button class="primary" id="auGo" type="submit">ĐĂNG NHẬP</button>
    </form>
    <p class="tiny"><a href="#" id="auForgot">Quên mật khẩu?</a></p>
+   <p class="tiny">Biệt danh không phân biệt hoa thường (SonCo5G và sonco5g là một). Bản miễn phí không giữ tài khoản sau khi máy chủ ngủ hoặc cập nhật — nếu không đăng nhập được, mở tab Đăng ký và tạo lại cùng biệt danh.</p>
   </div>
   <button class="pill btn" id="auGuest" style="margin-top:8px">🎒 Chơi offline (Khách) – không lưu lên máy chủ</button>
   <p class="tiny">Mật khẩu được mã hoá (scrypt) trên máy chủ. Không dùng lại mật khẩu ngân hàng/email.</p></div>`);
