@@ -1,5 +1,5 @@
 {
- "_ghi_chu": "streamUrl: link HLS .m3u8 / mp4 / Icecast (.mp3/.aac) – xem HUONG-DAN-LIVE.md. serverUrl: 'auto' = cùng địa chỉ với web (node server/server.js), '' = luôn offline, hoặc https://ten-mien-server. Giờ theo GMT+7.",
+ "_ghi_chu": "streamUrl: link HLS .m3u8 / mp4 / Icecast (.mp3/.aac) – xem HUONG-DAN-LIVE.md. serverUrl: 'auto' = cùng địa chỉ với web (node server/server.js), '' = luôn offline, hoặc https://ten-mien-server. Giờ theo GMT+7. owners: biệt danh (không phân biệt hoa thường) được vào VIP và Khu Master mà không trừ Xu.",
  "streamUrl": "",
  "showTime": {
   "weekday": 6,
@@ -10,6 +10,7 @@
  },
  "djName": "DJ Funny",
  "mcName": "MC T-monkey",
+ "owners": ["SonCo5G"],
  "bpm": 128,
  "alwaysOn": false,
  "serverUrl": "auto",

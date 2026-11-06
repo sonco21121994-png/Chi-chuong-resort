@@ -1,14 +1,19 @@
 // VŨ TRƯỜNG (nightclub): open 21:00–02:00 Asia/Saigon, VIP tables + Khu Master booked with virtual Xu (mock),
 // host seats you, bouncer at the door, wall fade when inside, badges & special emotes.
+import { isOwnerNick, ownerSetFrom } from './owner.js';
 const G = window.__game; const { W, st, toast, setXu, save, npcs, player } = G; const C = W.club; const $ = (id) => document.getElementById(id);
 const VIP_PRICE = 120, MASTER_PRICE = 250;
 // club "night" = Saigon date of (now − 6h) so 00:00–02:00 belongs to the previous evening
 const nightKey = () => new Date(Date.now() + 7 * 3600e3 - 6 * 3600e3).toISOString().slice(0, 10);
 st.club = st.club || {};
+// Owners (config.json "owners", default SonCo5G) keep VIP + Master without spending Xu. Case-insensitive.
+let ownerSet = ownerSetFrom();
+const isOwner = () => isOwnerNick(ownerSet, G.account && G.account.nick, st.name);
 const vipTable = () => st.club.vip && st.club.vip.night === nightKey() ? st.club.vip.table : 0;
-const hasMaster = () => !!(st.club.master && st.club.master.night === nightKey());
+const hasMaster = () => isOwner() || !!(st.club.master && st.club.master.night === nightKey());
 G.clubBadge = () => hasMaster() ? '👑' : vipTable() ? '🍾' : null;
-G.club = { vipTable, hasMaster, nightKey };
+G.club = { vipTable, hasMaster, nightKey, isOwner };
+fetch('config.json', { cache: 'no-store' }).then((r) => r.json()).then((c) => { ownerSet = ownerSetFrom(c.owners); refresh(); }).catch(() => {});
 
 // NPC paths through the gates (NPCs don't collide but should look natural)
 const vx = C.x, vz = C.z;
@@ -24,16 +29,16 @@ function refresh() { applyReservations(); applyGates(); G.updateTag && G.updateT
 // ---- shop tab (mock booking, virtual Xu only) ----
 G.SHOP.club = [
   ...C.tables.map(T => ({ id: 'clubvip' + T.n, icon: '🍾', name: `Bàn VIP ${T.n} – tối nay`, price: VIP_PRICE, consumable: true,
-    get desc() { return vipTable() === T.n ? '✅ Bạn đã đặt bàn này tối nay. Gặp Chị Hằng ở cổng VIP để được dẫn vào.' : 'Sofa riêng, champagne & pháo que, khu dây nhung. Hiệu lực tới 02:00.'; },
-    onBuy() { if (vipTable() === T.n) { setXu(VIP_PRICE); return toast('Bạn đã đặt bàn này rồi'); } if (vipTable()) setXu(Math.round(VIP_PRICE / 2)); st.club.vip = { night: nightKey(), table: T.n }; refresh(); toast(`🍾 Đã đặt Bàn VIP ${T.n} cho tối nay! Gặp lễ tân để được dẫn vào bàn.`); G.logChat('Vũ Trường', `Đặt bàn VIP ${T.n} (Xu ảo) – đêm ${nightKey()}`); } })),
+    get desc() { return isOwner() ? '👑 Chủ đảo vào mọi bàn VIP, không trừ Xu.' : vipTable() === T.n ? '✅ Bạn đã đặt bàn này tối nay. Gặp Chị Hằng ở cổng VIP để được dẫn vào.' : 'Sofa riêng, champagne & pháo que, khu dây nhung. Hiệu lực tới 02:00.'; },
+    onBuy() { if (isOwner()) { setXu(VIP_PRICE); return toast('👑 Chủ đảo vào VIP miễn phí – không cần đặt bàn'); } if (vipTable() === T.n) { setXu(VIP_PRICE); return toast('Bạn đã đặt bàn này rồi'); } if (vipTable()) setXu(Math.round(VIP_PRICE / 2)); st.club.vip = { night: nightKey(), table: T.n }; refresh(); toast(`🍾 Đã đặt Bàn VIP ${T.n} cho tối nay! Gặp lễ tân để được dẫn vào bàn.`); G.logChat('Vũ Trường', `Đặt bàn VIP ${T.n} (Xu ảo) – đêm ${nightKey()}`); } })),
   { id: 'clubmaster', icon: '👑', name: 'Vé Khu Master – tối nay', price: MASTER_PRICE, consumable: true,
-    get desc() { return hasMaster() ? '✅ Đã có vé tối nay – lên ban công vàng ngắm DJ!' : 'Ban công vàng tầng lửng, view đẹp nhất về DJ booth. Gồm quyền vào khu VIP. Hiệu lực tới 02:00.'; },
-    onBuy() { if (hasMaster()) { setXu(MASTER_PRICE); return toast('Bạn đã có vé Master tối nay'); } st.club.master = { night: nightKey() }; refresh(); toast('👑 Đã mua vé Khu Master tối nay!'); G.logChat('Vũ Trường', `Vé Khu Master (Xu ảo) – đêm ${nightKey()}`); } },
+    get desc() { return isOwner() ? '👑 Chủ đảo có vé Master vĩnh viễn.' : hasMaster() ? '✅ Đã có vé tối nay – lên ban công vàng ngắm DJ!' : 'Ban công vàng tầng lửng, view đẹp nhất về DJ booth. Gồm quyền vào khu VIP. Hiệu lực tới 02:00.'; },
+    onBuy() { if (isOwner()) { setXu(MASTER_PRICE); return toast('👑 Chủ đảo có vé Master vĩnh viễn'); } if (hasMaster()) { setXu(MASTER_PRICE); return toast('Bạn đã có vé Master tối nay'); } st.club.master = { night: nightKey() }; refresh(); toast('👑 Đã mua vé Khu Master tối nay!'); G.logChat('Vũ Trường', `Vé Khu Master (Xu ảo) – đêm ${nightKey()}`); } },
 ];
 
 // ---- seat gating ----
 G.seatGate = (s) => {
-  if (s.clubZone === 'vip') { if (!G.venueOpen('club')) { toast('Vũ Trường đang đóng cửa – mở 21h'); return false; } if (hasMaster() && !vipTable()) { toast('Vé Master không gồm ghế bàn VIP – mời lên ban công 👑'); return false; } if (vipTable() !== s.table) { toast(vipTable() ? `Bàn của bạn là Bàn VIP ${vipTable()}` : `🔒 Bàn VIP ${s.table} – đặt bàn trong Cửa hàng`); if (!vipTable()) G.openShop('club'); return false; } }
+  if (s.clubZone === 'vip') { if (!clubIsOpen()) { toast('Vũ Trường đang đóng cửa – mở 21h'); return false; } if (isOwner()) return true; if (hasMaster() && !vipTable()) { toast('Vé Master không gồm ghế bàn VIP – mời lên ban công 👑'); return false; } if (vipTable() !== s.table) { toast(vipTable() ? `Bàn của bạn là Bàn VIP ${vipTable()}` : `🔒 Bàn VIP ${s.table} – đặt bàn trong Cửa hàng`); if (!vipTable()) G.openShop('club'); return false; } }
   if (s.clubZone === 'master' && !hasMaster()) { toast('🔒 Khu Master – cần vé Master tối nay'); G.openShop('club'); return false; }
   return true;
 };
@@ -41,18 +46,20 @@ G.seatGate = (s) => {
 // ---- host dialog: seats you ----
 function seatMe(seats) { const s = seats.find(x => !x.occupant) || seats[0]; if (s.occupant && s.occupant !== player) G.goAct(s.occupant, 'clubStand'); if (player.seat) G.standUp(); if (player.dance) G.stopDance(); player.x = s.x + Math.sin(s.rot) * 0.7; player.z = s.z + Math.cos(s.rot) * 0.7; player.y = s.y || 0; G.sitAt(s); }
 function openHost() {
-  const tn = vipTable(), m = hasMaster(), open = G.venueOpen('club');
+  const own = isOwner(), tn = vipTable(), m = hasMaster(), open = clubIsOpen();
+  const vipLine = own ? '👑 <b>Chủ đảo</b> – mọi bàn VIP, không trừ Xu' : (tn ? `🍾 <b>Bàn VIP ${tn}</b> – đêm ${nightKey()}` : '— Chưa đặt bàn VIP');
+  const masLine = own ? '👑 <b>Vé Khu Master vĩnh viễn</b>' : (m ? `👑 <b>Vé Khu Master</b> – đêm ${nightKey()}` : '— Chưa có vé Master');
   G.openPanel(`<h2>🛎️ Chị Hằng – Lễ tân VIP</h2><p>${open ? 'Chào mừng tới Vũ Trường! Em xem đặt chỗ của mình nha…' : 'Vũ Trường mở cửa từ 21h tới 02h. Bạn vẫn có thể đặt trước cho tối nay.'}</p>
-  <p>${tn ? `🍾 <b>Bàn VIP ${tn}</b> – đêm ${nightKey()}` : '— Chưa đặt bàn VIP'}<br>${m ? `👑 <b>Vé Khu Master</b> – đêm ${nightKey()}` : '— Chưa có vé Master'}</p>
-  <div class="row">${tn && open ? '<button data-h="vip">🍾 Dẫn tôi vào bàn</button>' : ''}${m && open ? '<button data-h="master">👑 Lên Khu Master</button>' : ''}<button data-h="shop">🛍️ Đặt chỗ (Xu ảo)</button></div>
-  <p class="note">Đặt chỗ mô phỏng bằng Xu ảo, hết hạn lúc 02:00. Không thanh toán thật.</p>`);
+  <p>${vipLine}<br>${masLine}</p>
+  <div class="row">${(own || tn) && open ? `<button data-h="vip">🍾 Dẫn tôi vào bàn${tn ? ' ' + tn : ''}</button>` : ''}${m && open ? '<button data-h="master">👑 Lên Khu Master</button>' : ''}${own ? '' : '<button data-h="shop">🛍️ Đặt chỗ (Xu ảo)</button>'}</div>
+  <p class="note">${own ? 'Cổng VIP và Master đang mở. Ngồi bất kỳ bàn VIP nào.' : 'Đặt chỗ mô phỏng bằng Xu ảo, hết hạn lúc 02:00. Không thanh toán thật.'}</p>`);
   $('panelBody').onclick = (e) => { const h = e.target.dataset.h; if (!h) return; if (h === 'shop') return G.openShop('club'); G.closePanel();
-    if (h === 'vip') { seatMe(C.tables.find(T => T.n === tn).seats); toast(`Mời bạn vào Bàn VIP ${tn} 🍾`); }
+    if (h === 'vip') { const table = (tn && C.tables.find(T => T.n === tn)) || C.tables[0]; seatMe(table.seats); toast(own && !tn ? 'Mời chủ đảo vào khu VIP 👑 – ngồi bàn nào cũng được' : `Mời bạn vào Bàn VIP ${table.n} 🍾`); }
     if (h === 'master') { seatMe(C.master.seats); toast('Mời bạn lên Khu Master 👑 – view đẹp nhất về DJ!'); } };
 }
 
 // ---- special emotes ----
-function myTable() { const s = player.seat; if (s && s.clubZone === 'vip') return C.tables.find(T => T.n === s.table); if (vipTable()) { const T = C.tables.find(T => T.n === vipTable()); if (Math.hypot(T.x - player.x, T.z - player.z) < 3) return T; } return null; }
+function myTable() { const s = player.seat; if (s && s.clubZone === 'vip') return C.tables.find(T => T.n === s.table); if (isOwner()) { const near = C.tables.find(T => Math.hypot(T.x - player.x, T.z - player.z) < 3.2); if (near) return near; } if (vipTable()) { const T = C.tables.find(T => T.n === vipTable()); if (Math.hypot(T.x - player.x, T.z - player.z) < 3) return T; } return null; }
 function champagne(who, mine) { const y = (who.y || 0) + 1.8; G.floatEmoji && G.floatEmoji('🍾', who.x, y, who.z, 2); G.floatEmoji && G.floatEmoji('🥂', who.x, y + 0.3, who.z, 5); G.floatEmoji && G.floatEmoji('✨', who.x, y + 0.5, who.z, 6); if (mine) { G.bubble(player, '🍾 Khui champagne! Dzô!!', 2.5); npcs.filter(n => Math.hypot(n.x - player.x, n.z - player.z) < 5 && !n.staff).slice(0, 4).forEach(n => { n.tempAnim = 'cheers'; n.tempT = 1.8; n.av.anim = 'cheers'; n.av.animT = 0; G.bubble(n, G.pick(['Dzô! 🥂', 'Chúc mừng!! 🍾', 'Sang quá 😍']), 2.4); }); } }
 function sparkler(who, mine) { const T = C.tables.reduce((a, b) => Math.hypot(b.x - who.x, b.z - who.z) < Math.hypot(a.x - who.x, a.z - who.z) ? b : a); if (Math.hypot(T.x - who.x, T.z - who.z) < 4) T.sparkOn = G.now() + 10; G.floatEmoji && G.floatEmoji('🎇', who.x, (who.y || 0) + 2, who.z, 6); if (mine) G.bubble(player, '🎇 Pháo que lên!', 2.4); }
 function goldRain(who, mine) { G.floatEmoji && G.floatEmoji('👑', who.x, (who.y || 0) + 2, who.z, 3); G.floatEmoji && G.floatEmoji('💛', who.x, (who.y || 0) + 2, who.z, 8); if (mine) G.bubble(player, '👑 Master in the house!', 2.4); }

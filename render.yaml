@@ -1,6 +1,12 @@
-# Free web services have an ephemeral disk: server/data/daongoc.db (accounts) is wiped
-# on every deploy, restart, and spin-down. A persistent disk requires a paid instance.
-# After upgrading, add disk.mountPath /var/data and env DB=/var/data/daongoc.db.
+# Free web disk is wiped on every deploy. Accounts live in Postgres (chi-chuong-db,
+# Singapore, free — expires 30 days after creation) via DATABASE_URL.
+# The server still uses a local SQLite file and mirrors it to Postgres on each write.
+databases:
+  - name: chi-chuong-db
+    plan: free
+    region: singapore
+    postgresMajorVersion: "16"
+
 services:
   - type: web
     name: chi-chuong-resort
@@ -15,6 +21,10 @@ services:
         value: "22.16.0"
       - key: NODE_ENV
         value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chi-chuong-db
+          property: connectionString
       - key: RESEND_API_KEY
         sync: false
       - key: SMTP_URL

@@ -9,22 +9,15 @@ npm start
 
 Mở http://localhost:8080
 
-## Tài khoản trên Render (gói miễn phí)
+## Tài khoản trên Render
 
-Tài khoản nằm trong SQLite `server/data/daongoc.db`. Ổ đĩa của web service miễn phí bị xóa mỗi lần deploy, restart, hoặc sau khi máy chủ ngủ. Đăng nhập khi đó trả về "Sai biệt danh hoặc mật khẩu" dù mật khẩu đúng, vì nick không còn trong database. Hoa/thường không ảnh hưởng: `SonCo5G` và `sonco5g` là cùng một nick.
+Web service miễn phí xóa ổ đĩa mỗi lần deploy, restart, hoặc khi máy chủ ngủ. Game vẫn ghi SQLite `server/data/daongoc.db` lúc chạy, và khi có `DATABASE_URL` thì sao chép sang Postgres (`chi-chuong-db`) trước khi nhận kết nối và sau mỗi lần ghi. Đăng nhập sau deploy dùng nick đã đăng ký. Hoa/thường không ảnh hưởng: `SonCo5G` và `sonco5g` là cùng một nick.
 
-Việc cần làm: mở tab **Đăng ký** và tạo lại đúng biệt danh đó (email nên điền để dùng Quên mật khẩu). Nếu biệt danh đã có người dùng, tài khoản vẫn còn — dùng Quên mật khẩu với email đã đăng ký.
+Postgres gói miễn phí trên Render **hết hạn sau 30 ngày** (instance hiện tại hết hạn 6/12/2026). Trước ngày đó hãy nâng gói hoặc tạo database mới và gắn lại `DATABASE_URL`, nếu không tài khoản sẽ mất khi database bị xóa.
 
-Đĩa bền chỉ gắn được trên instance trả phí. Sau khi nâng cấp, thêm vào `render.yaml`:
+Không có `DATABASE_URL` (máy local) thì chỉ dùng SQLite. Tài khoản tạo trên bản deploy cũ, trước khi có Postgres, không còn — đăng ký lại một lần, nên điền email để dùng Quên mật khẩu.
 
-```yaml
-disk:
-  name: chi-chuong-data
-  mountPath: /var/data
-  sizeGB: 1
-```
-
-và biến `DB=/var/data/daongoc.db`.
+Chủ đảo trong `config.json` → `owners` (mặc định `SonCo5G`) vào mọi bàn VIP và Khu Master mà không trừ Xu. Tên không phân biệt hoa thường.
 
 ## Đặt lại mật khẩu (email)
 

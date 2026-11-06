@@ -8,12 +8,13 @@ import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import { WebSocketServer } from 'ws';
 import { cleanText, checkNick, nickKey, normNick } from './filter.mjs';
+import { createPersist } from './persist.mjs';
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dir, '..');
 const PORT = +process.env.PORT || 8080;
 // Default path is on the service disk. Render's free filesystem is wiped on every deploy, restart, and spin-down.
-// Set DB to a persistent-disk mount (paid instance) to keep accounts. See README.
+// When DATABASE_URL is set, server/persist.mjs mirrors this file to Postgres so accounts survive.
 const DBFILE = process.env.DB || path.join(__dir, 'data', 'daongoc.db');
 fs.mkdirSync(path.dirname(DBFILE), { recursive: true });
 const log = (...a) => console.log(new Date(Date.now() + 7 * 3600e3).toISOString().replace('T', ' ').slice(0, 19), '(GMT+7)', ...a);
@@ -35,6 +36,9 @@ CREATE TABLE IF NOT EXISTS dms(id INTEGER PRIMARY KEY, src INTEGER NOT NULL, dst
 CREATE INDEX IF NOT EXISTS dms_pair ON dms(src, dst, ts);
 CREATE TABLE IF NOT EXISTS password_resets(token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX IF NOT EXISTS resets_user ON password_resets(user_id);`);
+const persist = createPersist(db, log);
+try { await persist.ready(); }
+catch (e) { log('persist failed — server not started so an empty disk cannot overwrite Postgres:', e.message || e); process.exit(1); }
 const q = (sql) => db.prepare(sql);
 const Q = {
   userByKey: q('SELECT * FROM users WHERE nick_key=?'), userById: q('SELECT * FROM users WHERE id=?'),
@@ -399,4 +403,13 @@ setInterval(() => { // a date counts when both players stay within 12 m of the d
     const near = (c) => Math.hypot(c.x - d.x, c.z - d.z) < 12; if (near(A) && near(B) && A.room === B.room) d.t++; if (d.t >= 60) { dates.delete(k); const wk = weekId();
       for (const [me, other] of [[A, B], [B, A]]) { Q.addWeekDate.run(wk, me.user.id); SERVER_GRANT.set(me.user.id, (SERVER_GRANT.get(me.user.id) || 0) + 20); sendTo(me, { t: 'dateDone', with: { id: other.user.id, nick: other.user.nick }, place: d.place, xu: 20 }); } log('date done', A.user.nick, B.user.nick, d.place); } } }, 1000);
 
-server.listen(PORT, '0.0.0.0', () => log(`Đảo Ngọc server: http://0.0.0.0:${PORT}  (ws: /ws, api: /api/*, db: ${DBFILE})`));
+let shuttingDown = false;
+async function shutdown() {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  try { await persist.flushNow(); } catch (e) { log('flush on shutdown', e.message || e); }
+  process.exit(0);
+}
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+server.listen(PORT, '0.0.0.0', () => log(`Đảo Ngọc server: http://0.0.0.0:${PORT}  (ws: /ws, api: /api/*, db: ${DBFILE}${process.env.DATABASE_URL ? ' + postgres' : ''})`));
